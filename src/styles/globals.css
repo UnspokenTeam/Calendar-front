@@ -71,6 +71,9 @@
     @apply border-border;
   }
   body {
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
     @apply bg-background text-foreground;
   }
 }
