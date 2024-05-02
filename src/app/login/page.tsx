@@ -2,12 +2,12 @@ import Image from 'next/image'
 import {redirect} from "next/navigation";
 import RegisterForm from "@/components/register-form";
 import {getServerSession} from "next-auth";
-import {authOptions} from "@/server/auth";
+import LoginForm from "@/components/login-form";
+import Link from "next/link";
 
 
 export default async function HomePage() {
-    const session = await getServerSession(authOptions);
-
+    const session = await getServerSession();
     if (session) {
         redirect("/calendar");
     }
@@ -46,14 +46,14 @@ export default async function HomePage() {
                     <Image alt="Logo" src="logo.svg" width={48} height={48}/>
                 </h1>
                 <div className="flex flex-col self-center justify-center w-3/4 space-y-5 flex-grow">
-                    <h3 className="self-start text-3xl">Регистрация</h3>
+                    <h3 className="self-start text-3xl">Вход</h3>
 
-                    <RegisterForm/>
+                    <LoginForm/>
 
                 </div>
                 <div className="flex flex-row self-center space-x-3 pb-10">
-                    <span className="text-gray-500">Уже зарегистрированы?</span>
-                    <span>Вход</span>
+                    <span className="text-gray-500">Не зарегистрированы?</span>
+                    <Link href="/register">Регистрация</Link>
                 </div>
             </div>
         </main>

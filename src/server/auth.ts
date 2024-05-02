@@ -3,9 +3,11 @@ import {
   type DefaultSession,
   type NextAuthOptions,
 } from "next-auth";
-import DiscordProvider from "next-auth/providers/discord";
+import Credentials from "next-auth/providers/credentials"
 
 import { env } from "@/env";
+import {httpClient} from "@/lib/utils";
+import {RegisterResponse} from "@/types/Users";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -17,15 +19,22 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
+      access_token: string;
+      refresh_token: string;
       // ...other properties
       // role: UserRole;
     } & DefaultSession["user"];
   }
 
-  // interface User {
-  //   // ...other properties
-  //   // role: UserRole;
-  // }
+  interface User {
+    id: string;
+    username: string;
+    email: string;
+    access_token: string;
+    refresh_token: string;
+    // ...other properties
+    // role: UserRole;
+  }
 }
 
 /**
@@ -34,20 +43,73 @@ declare module "next-auth" {
  * @see https://next-auth.js.org/configuration/options
  */
 export const authOptions: NextAuthOptions = {
+  debug: true,
   callbacks: {
-    session: ({ session, token }) => ({
+    session: ({ session, token }) => {
+      return{
       ...session,
-      user: {
-        ...session.user,
-        id: token.sub,
+          user: {
+      ...session.user,
+            id: token.sub,
       },
-    }),
+      }
+    },
+
+    jwt({user, token}) {
+      token.user = user;
+      return token;
+    }
   },
   providers: [
-    // DiscordProvider({
-    //   clientId: env.DISCORD_CLIENT_ID,
-    //   clientSecret: env.DISCORD_CLIENT_SECRET,
-    // }),
+      Credentials({
+        type: "credentials",
+        name: "register",
+        id: "register",
+        credentials: {
+          username: {},
+          email: {},
+          password: {}
+        },
+        authorize: async (credentials) => {
+          const answer = await httpClient.post<RegisterResponse>("users/register", credentials);
+
+          if(answer.status != 200) {
+            return null;
+          }
+
+          return {
+            id: "1",
+            username: credentials?.username ?? "312",
+            email: credentials?.email ?? "321@321.ru",
+            access_token: answer.data.access_token,
+            refresh_token: answer.data.refresh_token
+          };
+        },
+      }),
+    Credentials({
+      type: "credentials",
+      name: "login",
+      id: "login",
+      credentials: {
+        email: {},
+        password: {}
+      },
+      authorize: async (credentials) => {
+        const answer = await httpClient.post<RegisterResponse>("users/login", credentials);
+
+        if(answer.status != 200) {
+          // return null;
+        }
+
+        return {
+          id: "1",
+          username: "base",
+          email: credentials?.email ?? "312",
+          access_token: answer.data.access_token,
+          refresh_token: answer.data.refresh_token
+        };
+      }
+    })
     /**
      * ...add more providers here.
      *

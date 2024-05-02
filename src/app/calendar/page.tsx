@@ -39,6 +39,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {signOut, useSession} from "next-auth/react";
 
 interface Event {
     title: string,
@@ -108,11 +109,18 @@ export default function CalendarPage() {
                         <Button variant="icon" size="icon"><User/></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                        <DropdownMenuLabel>Мой аккаунт</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>Profile</DropdownMenuItem>
-                        <DropdownMenuItem>Settings</DropdownMenuItem>
-                        <DropdownMenuItem>Subscription</DropdownMenuItem>
+                        <DropdownMenuItem>Профиль</DropdownMenuItem>
+                        <DropdownMenuItem>Настройки</DropdownMenuItem>
+                        <DropdownMenuItem>Подписки</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={async () => await signOut({
+                            callbackUrl: "/login",
+                            redirect: true
+                        })}>
+                            Выйти
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
@@ -140,7 +148,7 @@ export default function CalendarPage() {
                                         {event?.start ? (
                                             format(event?.start, "PPP HH:mm:ss")
                                         ) : (
-                                            <span>Pick a date</span>
+                                            <span>Выберите начало</span>
                                         )}
                                     </Button>
                                 </PopoverTrigger>
@@ -176,7 +184,7 @@ export default function CalendarPage() {
                                             {event?.end ? (
                                                 format(event?.end, "PPP HH:mm:ss")
                                             ) : (
-                                                <span>Pick a date</span>
+                                                <span>Выберите конец</span>
                                             )}
                                         </Button>
                                     </div>

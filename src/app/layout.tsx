@@ -1,7 +1,7 @@
 import "@/styles/globals.css";
 
 import { Inter } from "next/font/google";
-import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
+import QueryProvider from "@/components/query-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -14,7 +14,6 @@ export const metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
-const queryProvider = new QueryClient();
 
 export default function RootLayout({
   children,
@@ -23,9 +22,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <QueryClientProvider client={queryProvider}>
+      <QueryProvider>
           <body className={`font-sans ${inter.variable}`}>{children}</body>
-      </QueryClientProvider>
+      </QueryProvider>
     </html>
   );
 }
