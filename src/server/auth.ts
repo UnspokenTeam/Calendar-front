@@ -7,7 +7,7 @@ import Credentials from "next-auth/providers/credentials"
 
 import { env } from "@/env";
 import {httpClient} from "@/lib/utils";
-import {RegisterResponse} from "@/types/Users";
+import {AuthResponse, Role} from "@/types/Users";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -19,8 +19,11 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
+      username: string;
+      email: string;
       access_token: string;
       refresh_token: string;
+      role: Role
       // ...other properties
       // role: UserRole;
     } & DefaultSession["user"];
@@ -32,6 +35,7 @@ declare module "next-auth" {
     email: string;
     access_token: string;
     refresh_token: string;
+    role: Role
     // ...other properties
     // role: UserRole;
   }
@@ -45,19 +49,33 @@ declare module "next-auth" {
 export const authOptions: NextAuthOptions = {
   debug: true,
   callbacks: {
-    session: ({ session, token }) => {
+    session: ({ session, token, user }) => {
       return{
       ...session,
           user: {
-      ...session.user,
+          ...session.user,
+            access_token: token.user.access_token,
             id: token.sub,
-      },
+          },
       }
     },
-
     jwt({user, token}) {
-      token.user = user;
+      if (user) {
+        token.user = user;
+      }
+
       return token;
+    }
+  },
+  events: {
+    signOut: async() => {
+      await httpClient.post("users/logout", null, {
+        params: {
+          access_token: httpClient.defaults.headers.common.Authorization
+        }
+      })
+
+      httpClient.defaults.headers.common.Authorization = null;
     }
   },
   providers: [
@@ -71,18 +89,22 @@ export const authOptions: NextAuthOptions = {
           password: {}
         },
         authorize: async (credentials) => {
-          const answer = await httpClient.post<RegisterResponse>("users/register", credentials);
+          const answer = await httpClient.post<AuthResponse>("users/register", credentials);
 
           if(answer.status != 200) {
             return null;
           }
 
+          httpClient.defaults.headers.common.Authorization = answer.data.access_token;
+          console.log(httpClient.defaults.headers.common.Authorization)
+
           return {
-            id: "1",
-            username: credentials?.username ?? "312",
-            email: credentials?.email ?? "321@321.ru",
+            id: answer.data.user.id,
+            username: answer.data.user.username,
+            email: answer.data.user.email,
             access_token: answer.data.access_token,
-            refresh_token: answer.data.refresh_token
+            refresh_token: answer.data.refresh_token,
+            role: answer.data.user.type
           };
         },
       }),
@@ -95,18 +117,22 @@ export const authOptions: NextAuthOptions = {
         password: {}
       },
       authorize: async (credentials) => {
-        const answer = await httpClient.post<RegisterResponse>("users/login", credentials);
+        const answer = await httpClient.post<AuthResponse>("users/login", credentials);
 
         if(answer.status != 200) {
-          // return null;
+          return null;
         }
 
+        httpClient.defaults.headers.common.Authorization = answer.data.access_token;
+        console.log(httpClient.defaults.headers.common.Authorization)
+
         return {
-          id: "1",
-          username: "base",
-          email: credentials?.email ?? "312",
+          id: answer.data.user.id,
+          username: answer.data.user.username,
+          email: answer.data.user.email,
           access_token: answer.data.access_token,
-          refresh_token: answer.data.refresh_token
+          refresh_token: answer.data.refresh_token,
+          role: answer.data.user.type
         };
       }
     })

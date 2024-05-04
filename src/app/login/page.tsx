@@ -1,6 +1,5 @@
 import Image from 'next/image'
 import {redirect} from "next/navigation";
-import RegisterForm from "@/components/register-form";
 import {getServerSession} from "next-auth";
 import LoginForm from "@/components/login-form";
 import Link from "next/link";
