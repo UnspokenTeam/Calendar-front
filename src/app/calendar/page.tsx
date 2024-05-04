@@ -68,49 +68,65 @@ export default function CalendarPage() {
         queryKey: ["events", date],
         queryFn: async (args) => {
             const [_, date] = args.queryKey;
-            return (await httpClient.get<Events>("events/my/created", {
-                params: {
-                    page: 1,
-                    items_per_page: -1,
-                    access_token: session.data?.user.access_token,
-                    start: startOfDay(subDays(startOfMonth(date as Date), 7)),
-                    end: endOfDay(subDays(endOfMonth(date as Date), 7)),
-                }
-            })).data
+            try {
+                return (await httpClient.get<Events>("events/my/created", {
+                    params: {
+                        page: 1,
+                        items_per_page: -1,
+                        access_token: session.data?.user.access_token,
+                        start: startOfDay(subDays(startOfMonth(date as Date), 7)),
+                        end: endOfDay(subDays(endOfMonth(date as Date), 7)),
+                    }
+                })).data
+            } catch {
+                return [];
+            }
+
         },
-        retry: 3
+        retry: 3,
+        enabled: !!session.data?.user.access_token
     })
 
     const {data: eventsToday} = useQuery({
-        queryKey: ["eventsToday"],
+        queryKey: ["events", { type: "today" }],
         queryFn: async () => {
-            return (await httpClient.get<Events>("events/my/created", {
-                params: {
-                    page: 1,
-                    items_per_page: -1,
-                    access_token: session.data?.user.access_token,
-                    start: startOfDay(today),
-                    end: endOfDay(today),
-                }
-            })).data
+            try {
+                return (await httpClient.get<Events>("events/my/created", {
+                    params: {
+                        page: 1,
+                        items_per_page: -1,
+                        access_token: session.data?.user.access_token,
+                        start: startOfDay(today),
+                        end: endOfDay(today),
+                    }
+                })).data
+            } catch {
+                return []
+            }
         },
-        retry: 3
+        retry: 3,
+        enabled: !!session.data?.user.access_token
     })
 
     const {data: eventsTomorrow} = useQuery({
-        queryKey: ["eventsTomorrow"],
+        queryKey: ["events", { type: "tomorrow" }],
         queryFn: async () => {
-            return (await httpClient.get<Events>("events/my/created", {
-                params: {
-                    page: 1,
-                    items_per_page: -1,
-                    access_token: session.data?.user.access_token,
-                    start: addDays(startOfDay(today), 1),
-                    end: addDays(endOfDay(today), 1),
-                }
-            })).data
+            try {
+                return (await httpClient.get<Events>("events/my/created", {
+                    params: {
+                        page: 1,
+                        items_per_page: -1,
+                        access_token: session.data?.user.access_token,
+                        start: addDays(startOfDay(today), 1),
+                        end: addDays(endOfDay(today), 1),
+                    }
+                })).data
+            } catch {
+                return []
+            }
         },
-        retry: 3
+        retry: 3,
+        enabled: !!session.data?.user.access_token
     })
 
     // const handleSelectSlot = ({start, end, id}) => {
@@ -253,7 +269,7 @@ export default function CalendarPage() {
                                     setViewDialog(true);
                                 }}
                                 eventChange={(event) => console.log(event)}
-                                headerToolbar={null}
+                                headerToolbar={false}
                                 height="100%"
                                 eventResizableFromStart
                                 droppable
@@ -285,7 +301,7 @@ export default function CalendarPage() {
                                     setViewDialog(true);
                                 }}
                                 eventChange={(event) => console.log(event)}
-                                headerToolbar={null}
+                                headerToolbar={false}
                                 height="100%"
                                 eventResizableFromStart
                                 droppable
@@ -306,7 +322,7 @@ export default function CalendarPage() {
                                     setViewDialog(true);
                                 }}
                                 eventChange={(event) => console.log(event)}
-                                headerToolbar={null}
+                                headerToolbar={false}
                                 height="100%"
                                 eventResizableFromStart
                                 droppable

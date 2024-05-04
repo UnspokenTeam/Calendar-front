@@ -54,7 +54,9 @@ export const authOptions: NextAuthOptions = {
       ...session,
           user: {
           ...session.user,
-            access_token: token.user.access_token,
+            // eslint-disable-next-line
+            //@ts-expect-error
+            access_token: token.user.access_token as string,
             id: token.sub,
           },
       }
@@ -69,13 +71,17 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     signOut: async() => {
-      await httpClient.post("users/logout", null, {
-        params: {
-          access_token: httpClient.defaults.headers.common.Authorization
-        }
-      })
+      try {
+        await httpClient.post("users/logout", null, {
+          params: {
+            access_token: httpClient.defaults.headers.common.Authorization
+          }
+        })
 
-      httpClient.defaults.headers.common.Authorization = null;
+        httpClient.defaults.headers.common.Authorization = null;
+      } catch {
+        //pass
+      }
     }
   },
   providers: [
