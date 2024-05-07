@@ -276,7 +276,7 @@ export default function HomePage() {
                 <Button className="bg-[#E1EAFF] text-[#0F172A] hover:text-white">Изменить</Button>
             </div>                                         
         </div>
-            
+   
         </div>
 </main>
 )
