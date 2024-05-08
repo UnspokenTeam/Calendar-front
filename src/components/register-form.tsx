@@ -69,4 +69,6 @@ const RegisterForm: React.FC = () => {
     )
 };
 
+RegisterForm.displayName = "RegisterForm";
+
 export default RegisterForm;

@@ -11,7 +11,7 @@ import {
 import {Label} from "@/components/ui/label";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {Button} from "@/components/ui/button";
-import {cn, httpClient} from "@/lib/utils";
+import {cn} from "@/lib/utils";
 import {CalendarIcon} from "lucide-react";
 import {format} from "date-fns";
 import {Calendar} from "@/components/ui/calendar";
@@ -25,6 +25,7 @@ import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {useSession} from "next-auth/react";
+import apiClient from "@/lib/api-client";
 
 interface IAddEvent {
     open: boolean;
@@ -47,7 +48,7 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
 
     const {mutateAsync} = useMutation({
         mutationFn: async (values: z.infer<typeof formSchema>) => {
-            await httpClient.post(`events/?access_token=${session.data?.user.access_token}`, {...values, repeating_delay: {
+            await apiClient.post("events/", {...values, repeating_delay: {
                 minutes: 0
                 }});
             await client.invalidateQueries({

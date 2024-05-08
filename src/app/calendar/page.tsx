@@ -19,7 +19,6 @@ import timeGridWeek from '@fullcalendar/timegrid';
 import dayGridMonth from '@fullcalendar/daygrid';
 import {createDuration} from "@fullcalendar/core/internal";
 import interactionPlugin from '@fullcalendar/interaction';
-import {httpClient} from "@/lib/utils";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -33,6 +32,7 @@ import AddEventDialog from "@/components/add-event-dialog";
 import {useQuery} from "@tanstack/react-query";
 import type {Events} from "@/types/Events";
 import ViewEventDialog from "@/components/view-event-dialog";
+import apiClient from "@/lib/api-client";
 
 export default function CalendarPage() {
     const session = useSession();
@@ -69,11 +69,10 @@ export default function CalendarPage() {
         queryFn: async (args) => {
             const [_, date] = args.queryKey;
             try {
-                return (await httpClient.get<Events>("events/my/created", {
+                return (await apiClient.get<Events>("events/my/created", {
                     params: {
                         page: 1,
                         items_per_page: -1,
-                        access_token: session.data?.user.access_token,
                         start: startOfDay(subDays(startOfMonth(date as Date), 7)),
                         end: endOfDay(subDays(endOfMonth(date as Date), 7)),
                     }
@@ -84,18 +83,18 @@ export default function CalendarPage() {
 
         },
         retry: 3,
-        enabled: !!session.data?.user.access_token
     })
 
     const {data: eventsToday} = useQuery({
-        queryKey: ["events", { type: "today" }],
+        queryKey: ["events", {type: "today"}],
         queryFn: async () => {
+            console.log(today);
+            console.log(startOfDay(today))
             try {
-                return (await httpClient.get<Events>("events/my/created", {
+                return (await apiClient.get<Events>("events/my/created", {
                     params: {
                         page: 1,
                         items_per_page: -1,
-                        access_token: session.data?.user.access_token,
                         start: startOfDay(today),
                         end: endOfDay(today),
                     }
@@ -105,18 +104,16 @@ export default function CalendarPage() {
             }
         },
         retry: 3,
-        enabled: !!session.data?.user.access_token
     })
 
     const {data: eventsTomorrow} = useQuery({
-        queryKey: ["events", { type: "tomorrow" }],
+        queryKey: ["events", {type: "tomorrow"}],
         queryFn: async () => {
             try {
-                return (await httpClient.get<Events>("events/my/created", {
+                return (await apiClient.get<Events>("events/my/created", {
                     params: {
                         page: 1,
                         items_per_page: -1,
-                        access_token: session.data?.user.access_token,
                         start: addDays(startOfDay(today), 1),
                         end: addDays(endOfDay(today), 1),
                     }
@@ -126,7 +123,6 @@ export default function CalendarPage() {
             }
         },
         retry: 3,
-        enabled: !!session.data?.user.access_token
     })
 
     // const handleSelectSlot = ({start, end, id}) => {

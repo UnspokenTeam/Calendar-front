@@ -1,17 +1,8 @@
 "use client";
 
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Label} from "@/components/ui/label";
 import {Button} from "@/components/ui/button";
-import {cn, httpClient} from "@/lib/utils";
-import {CalendarIcon, Pencil, PencilIcon, Trash2} from "lucide-react";
 import {format} from "date-fns";
 import React from "react";
 import {Textarea} from "@/components/ui/textarea";
@@ -20,12 +11,16 @@ import {useSession} from "next-auth/react";
 import {Event} from "@/types/Events";
 import {Input} from "@/components/ui/input";
 import {
-    AlertDialog, AlertDialogAction, AlertDialogCancel,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
     AlertDialogContent,
-    AlertDialogDescription, AlertDialogFooter,
+    AlertDialogDescription,
+    AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle
 } from "@/components/ui/alert-dialog";
+import apiClient from "@/lib/api-client";
 
 interface IViewEvent {
     open: boolean;
@@ -44,11 +39,7 @@ const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id, setEdit}) => {
         queryKey: ["events", id],
         queryFn: async (args) => {
             const [_, id] = args.queryKey;
-            return (await httpClient.get<Event>(`events/${id}`, {
-                params: {
-                    access_token: session.data?.user.access_token,
-                }
-            })).data
+            return (await apiClient.get<Event>(`events/${id}`)).data
         },
         retry: 3,
         enabled: open
@@ -56,9 +47,8 @@ const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id, setEdit}) => {
 
     const {mutate} = useMutation({
         mutationFn: async (id: string) => {
-            await httpClient.delete("events/", {
+            await apiClient.delete("events/", {
                 params: {
-                    access_token: session.data?.user.access_token,
                     event_id: id
                 }
             })
@@ -84,7 +74,8 @@ const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id, setEdit}) => {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Вы абсолютно уверены?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Это действие нельзя отменить. Это приведет к окончательному удалению события &quot;{data?.event.title}&quot;.
+                            Это действие нельзя отменить. Это приведет к окончательному удалению
+                            события &quot;{data?.event.title}&quot;.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -118,8 +109,10 @@ const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id, setEdit}) => {
                         </div>
                     </div>
                     <DialogFooter className="!justify-center !space-x-5">
-                        <Button variant="outline" className="px-4 bg-[#E1EAFF]" onClick={() => setEdit(true)}>Изменить</Button>
-                        <Button variant="default" className="px-6" onClick={() => setDeleteDialog(true)}>Удалить</Button>
+                        <Button variant="outline" className="px-4 bg-[#E1EAFF]"
+                                onClick={() => setEdit(true)}>Изменить</Button>
+                        <Button variant="default" className="px-6"
+                                onClick={() => setDeleteDialog(true)}>Удалить</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
