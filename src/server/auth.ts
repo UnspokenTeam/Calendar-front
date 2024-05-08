@@ -6,7 +6,7 @@ import {
 import Credentials from "next-auth/providers/credentials"
 
 import { env } from "@/env";
-import {httpClient} from "@/lib/utils";
+import apiClient from "@/lib/api-client";
 import {AuthResponse, Role} from "@/types/Users";
 
 /**
@@ -54,7 +54,9 @@ export const authOptions: NextAuthOptions = {
       ...session,
           user: {
           ...session.user,
-            access_token: token.user.access_token,
+            // eslint-disable-next-line
+            //@ts-expect-error
+            access_token: token.user.access_token as string,
             id: token.sub,
           },
       }
@@ -69,13 +71,13 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     signOut: async() => {
-      await httpClient.post("users/logout", null, {
-        params: {
-          access_token: httpClient.defaults.headers.common.Authorization
-        }
-      })
+      try {
+        await apiClient.post("users/logout", null)
 
-      httpClient.defaults.headers.common.Authorization = null;
+        apiClient.defaults.headers.common.Authorization = null;
+      } catch {
+        //pass
+      }
     }
   },
   providers: [
@@ -89,14 +91,13 @@ export const authOptions: NextAuthOptions = {
           password: {}
         },
         authorize: async (credentials) => {
-          const answer = await httpClient.post<AuthResponse>("users/register", credentials);
+          const answer = await apiClient.post<AuthResponse>("users/register", credentials);
 
           if(answer.status != 200) {
             return null;
           }
 
-          httpClient.defaults.headers.common.Authorization = answer.data.access_token;
-          console.log(httpClient.defaults.headers.common.Authorization)
+          apiClient.defaults.headers.common.Authorization = answer.data.access_token;
 
           return {
             id: answer.data.user.id,
@@ -117,14 +118,13 @@ export const authOptions: NextAuthOptions = {
         password: {}
       },
       authorize: async (credentials) => {
-        const answer = await httpClient.post<AuthResponse>("users/login", credentials);
+        const answer = await apiClient.post<AuthResponse>("users/login", credentials);
 
         if(answer.status != 200) {
           return null;
         }
 
-        httpClient.defaults.headers.common.Authorization = answer.data.access_token;
-        console.log(httpClient.defaults.headers.common.Authorization)
+        apiClient.defaults.headers.common.Authorization = answer.data.access_token;
 
         return {
           id: answer.data.user.id,

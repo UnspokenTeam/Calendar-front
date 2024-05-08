@@ -19,7 +19,6 @@ import timeGridWeek from '@fullcalendar/timegrid';
 import dayGridMonth from '@fullcalendar/daygrid';
 import {createDuration} from "@fullcalendar/core/internal";
 import interactionPlugin from '@fullcalendar/interaction';
-import {httpClient} from "@/lib/utils";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -33,6 +32,7 @@ import AddEventDialog from "@/components/add-event-dialog";
 import {useQuery} from "@tanstack/react-query";
 import type {Events} from "@/types/Events";
 import ViewEventDialog from "@/components/view-event-dialog";
+import apiClient from "@/lib/api-client";
 
 export default function CalendarPage() {
     const session = useSession();
@@ -68,49 +68,61 @@ export default function CalendarPage() {
         queryKey: ["events", date],
         queryFn: async (args) => {
             const [_, date] = args.queryKey;
-            return (await httpClient.get<Events>("events/my/created", {
-                params: {
-                    page: 1,
-                    items_per_page: -1,
-                    access_token: session.data?.user.access_token,
-                    start: startOfDay(subDays(startOfMonth(date as Date), 7)),
-                    end: endOfDay(subDays(endOfMonth(date as Date), 7)),
-                }
-            })).data
+            try {
+                return (await apiClient.get<Events>("events/my/created", {
+                    params: {
+                        page: 1,
+                        items_per_page: -1,
+                        start: startOfDay(subDays(startOfMonth(date as Date), 7)),
+                        end: endOfDay(subDays(endOfMonth(date as Date), 7)),
+                    }
+                })).data
+            } catch {
+                return [];
+            }
+
         },
-        retry: 3
+        retry: 3,
     })
 
     const {data: eventsToday} = useQuery({
-        queryKey: ["eventsToday"],
+        queryKey: ["events", {type: "today"}],
         queryFn: async () => {
-            return (await httpClient.get<Events>("events/my/created", {
-                params: {
-                    page: 1,
-                    items_per_page: -1,
-                    access_token: session.data?.user.access_token,
-                    start: startOfDay(today),
-                    end: endOfDay(today),
-                }
-            })).data
+            console.log(today);
+            console.log(startOfDay(today))
+            try {
+                return (await apiClient.get<Events>("events/my/created", {
+                    params: {
+                        page: 1,
+                        items_per_page: -1,
+                        start: startOfDay(today),
+                        end: endOfDay(today),
+                    }
+                })).data
+            } catch {
+                return []
+            }
         },
-        retry: 3
+        retry: 3,
     })
 
     const {data: eventsTomorrow} = useQuery({
-        queryKey: ["eventsTomorrow"],
+        queryKey: ["events", {type: "tomorrow"}],
         queryFn: async () => {
-            return (await httpClient.get<Events>("events/my/created", {
-                params: {
-                    page: 1,
-                    items_per_page: -1,
-                    access_token: session.data?.user.access_token,
-                    start: addDays(startOfDay(today), 1),
-                    end: addDays(endOfDay(today), 1),
-                }
-            })).data
+            try {
+                return (await apiClient.get<Events>("events/my/created", {
+                    params: {
+                        page: 1,
+                        items_per_page: -1,
+                        start: addDays(startOfDay(today), 1),
+                        end: addDays(endOfDay(today), 1),
+                    }
+                })).data
+            } catch {
+                return []
+            }
         },
-        retry: 3
+        retry: 3,
     })
 
     // const handleSelectSlot = ({start, end, id}) => {
@@ -253,7 +265,7 @@ export default function CalendarPage() {
                                     setViewDialog(true);
                                 }}
                                 eventChange={(event) => console.log(event)}
-                                headerToolbar={null}
+                                headerToolbar={false}
                                 height="100%"
                                 eventResizableFromStart
                                 droppable
@@ -285,7 +297,7 @@ export default function CalendarPage() {
                                     setViewDialog(true);
                                 }}
                                 eventChange={(event) => console.log(event)}
-                                headerToolbar={null}
+                                headerToolbar={false}
                                 height="100%"
                                 eventResizableFromStart
                                 droppable
@@ -306,7 +318,7 @@ export default function CalendarPage() {
                                     setViewDialog(true);
                                 }}
                                 eventChange={(event) => console.log(event)}
-                                headerToolbar={null}
+                                headerToolbar={false}
                                 height="100%"
                                 eventResizableFromStart
                                 droppable
