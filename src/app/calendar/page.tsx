@@ -29,10 +29,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {signOut, useSession} from "next-auth/react";
 import AddEventDialog from "@/components/add-event-dialog";
-import {useQuery} from "@tanstack/react-query";
-import type {Events} from "@/types/Events";
+import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {ColorMapper, Colors, EventColorMapper, Events} from "@/types/Events";
 import ViewEventDialog from "@/components/view-event-dialog";
 import apiClient from "@/lib/api-client";
+import {EventChangeArg} from "@fullcalendar/core";
+import {cn} from "@/lib/utils";
 
 export default function CalendarPage() {
     const session = useSession();
@@ -63,23 +65,22 @@ export default function CalendarPage() {
         return () => document.removeEventListener("keydown", down)
     }, [])
 
+    const client = useQueryClient();
 
     const {data: events} = useQuery({
         queryKey: ["events", date],
         queryFn: async (args) => {
             const [_, date] = args.queryKey;
-            try {
-                return (await apiClient.get<Events>("events/my/created", {
-                    params: {
-                        page: 1,
-                        items_per_page: -1,
-                        start: startOfDay(subDays(startOfMonth(date as Date), 7)),
-                        end: endOfDay(subDays(endOfMonth(date as Date), 7)),
-                    }
-                })).data
-            } catch {
-                return [];
-            }
+            const res = (await apiClient.get<Events>("events/my/created/", {
+                params: {
+                    page: 1,
+                    items_per_page: -1,
+                    start: startOfDay(subDays(startOfMonth(date as Date), 7)),
+                    end: endOfDay(subDays(endOfMonth(date as Date), 7)),
+                }
+            })).data
+
+            return res;
 
         },
         retry: 3,
@@ -88,10 +89,8 @@ export default function CalendarPage() {
     const {data: eventsToday} = useQuery({
         queryKey: ["events", {type: "today"}],
         queryFn: async () => {
-            console.log(today);
-            console.log(startOfDay(today))
             try {
-                return (await apiClient.get<Events>("events/my/created", {
+                return (await apiClient.get<Events>("events/my/created/", {
                     params: {
                         page: 1,
                         items_per_page: -1,
@@ -110,7 +109,7 @@ export default function CalendarPage() {
         queryKey: ["events", {type: "tomorrow"}],
         queryFn: async () => {
             try {
-                return (await apiClient.get<Events>("events/my/created", {
+                return (await apiClient.get<Events>("events/my/created/", {
                     params: {
                         page: 1,
                         items_per_page: -1,
@@ -124,6 +123,26 @@ export default function CalendarPage() {
         },
         retry: 3,
     })
+
+    const {mutateAsync} = useMutation({
+        mutationFn: async ({id, start, end}: { id: string, start: Date, end: Date }) => {
+            const item = events!.find(x => x.id === id)!;
+            item.start = start;
+            item.end = end;
+
+            await apiClient.put("events/", {
+                ...item
+            });
+
+            await client.invalidateQueries({
+                queryKey: ["events"]
+            });
+        },
+    })
+
+    const handleEventChange = async ({event}: EventChangeArg) => {
+        await mutateAsync({id: event.id, start: event.start!, end: event.end!})
+    }
 
     // const handleSelectSlot = ({start, end, id}) => {
     //     const title = window.prompt('New Event Name');
@@ -193,46 +212,57 @@ export default function CalendarPage() {
                         className="rounded-md border w-f bg-white"
                     />
                     <div className="overflow-y-auto no-scrollbar w-full">
-                        <hr className="h-[2px] bg-[#BCBCBC] w-full px-[15px] my-4"/>
-                        <div className="flex flex-col w-full max-w-full space-y-3">
-                            <div className="self-start">Сегодня {format(today, "dd/MM/yyyy")}</div>
-                            {eventsToday?.map((item) => (
-                                <div className="flex" key={item.id}>
-                                    <div className="h-[24px] w-[24px] shrink-0 rounded-full bg-red-600"/>
-                                    <div className="ml-1">
-                                        <div className="flex space-x-2 min-w-fit">
-                                            <span>{format(item.start, "HH:mm")} - {format(item.end, "HH:mm")}</span>
+                        {(eventsToday && eventsToday.length > 0) && (
+                            <>
+                                <hr className="h-[2px] bg-[#BCBCBC] w-full px-[15px] my-4"/>
+                                <div className="flex flex-col w-full max-w-full space-y-3">
+                                    <div className="self-start">Сегодня {format(today, "dd/MM/yyyy")}</div>
+                                    {eventsToday?.map((item) => (
+                                        <div className="flex" key={item.id}>
+                                            <div
+                                                className={cn("h-[24px] w-[24px] shrink-0 rounded-full", ColorMapper[item.color])}/>
+                                            <div className="ml-1">
+                                                <div className="flex space-x-2 min-w-fit">
+                                                    <span>{format(item.start, "HH:mm")} - {format(item.end, "HH:mm")}</span>
+                                                </div>
+                                                <div>
+                                                    {item.title}
+                                                </div>
+                                                <div className="text-wrap break-normal text-gray-500">
+                                                    {item.description}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            {item.title}
-                                        </div>
-                                        <div className="text-wrap break-normal text-gray-500">
-                                            {item.description}
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                        <hr className="h-[2px] bg-[#BCBCBC] w-full px-3 my-8"/>
-                        <div className="flex flex-col w-full max-w-full space-y-3">
-                            <div className="self-start">Завтра {format(addDays(today, 1), "dd/MM/yyyy")}</div>
-                            {eventsTomorrow?.map((item) => (
-                                <div className="flex" key={item.id}>
-                                    <div className="h-[24px] w-[24px] shrink-0 rounded-full bg-red-600"/>
-                                    <div className="ml-1">
-                                        <div className="flex space-x-2 min-w-fit">
-                                            <span>{format(item.start, "HH:mm")} - {format(item.end, "HH:mm")}</span>
+                            </>
+                        )}
+
+                        {(eventsTomorrow && eventsTomorrow.length > 0) && (
+                            <>
+                                <hr className="h-[2px] bg-[#BCBCBC] w-full px-3 my-8"/>
+                                <div className="flex flex-col w-full max-w-full space-y-3">
+                                    <div className="self-start">Завтра {format(addDays(today, 1), "dd/MM/yyyy")}</div>
+                                    {eventsTomorrow?.map((item) => (
+                                        <div className="flex" key={item.id}>
+                                            <div
+                                                className={cn("h-[24px] w-[24px] shrink-0 rounded-full", ColorMapper[item.color])}/>
+                                            <div className="ml-1">
+                                                <div className="flex space-x-2 min-w-fit">
+                                                    <span>{format(item.start, "HH:mm")} - {format(item.end, "HH:mm")}</span>
+                                                </div>
+                                                <div>
+                                                    {item.title}
+                                                </div>
+                                                <div className="text-wrap break-normal text-gray-500">
+                                                    {item.description}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            {item.title}
-                                        </div>
-                                        <div className="text-wrap break-normal text-gray-500">
-                                            {item.description}
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
+                            </>
+                        )}
                     </div>
 
                 </div>
@@ -264,7 +294,7 @@ export default function CalendarPage() {
                                     setId(event.event.id);
                                     setViewDialog(true);
                                 }}
-                                eventChange={(event) => console.log(event)}
+                                eventChange={handleEventChange}
                                 headerToolbar={false}
                                 height="100%"
                                 eventResizableFromStart
@@ -272,6 +302,9 @@ export default function CalendarPage() {
                                 editable
                                 nowIndicator
                                 selectable
+                                eventDidMount={(e) => {
+                                    e.el.className += ` ${EventColorMapper[e.backgroundColor as Colors]}`
+                                }}
                             />
                         </TabsContent>
                         <TabsContent value="week" className="flex-grow">
@@ -296,7 +329,7 @@ export default function CalendarPage() {
                                     setId(event.event.id);
                                     setViewDialog(true);
                                 }}
-                                eventChange={(event) => console.log(event)}
+                                eventChange={handleEventChange}
                                 headerToolbar={false}
                                 height="100%"
                                 eventResizableFromStart
@@ -304,6 +337,9 @@ export default function CalendarPage() {
                                 editable
                                 nowIndicator
                                 selectable
+                                eventDidMount={(e) => {
+                                    e.el.className += ` ${EventColorMapper[e.backgroundColor as Colors]}`
+                                }}
 
                             />
                         </TabsContent>
@@ -317,7 +353,7 @@ export default function CalendarPage() {
                                     setId(event.event.id);
                                     setViewDialog(true);
                                 }}
-                                eventChange={(event) => console.log(event)}
+                                eventChange={handleEventChange}
                                 headerToolbar={false}
                                 height="100%"
                                 eventResizableFromStart
@@ -325,6 +361,9 @@ export default function CalendarPage() {
                                 editable
                                 nowIndicator
                                 selectable
+                                eventDidMount={(e) => {
+                                    e.el.className += ` ${EventColorMapper[e.backgroundColor as Colors]}`
+                                }}
                             />
                         </TabsContent>
                     </Tabs>
