@@ -26,6 +26,9 @@ import {Textarea} from "@/components/ui/textarea";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {useSession} from "next-auth/react";
 import apiClient from "@/lib/api-client";
+import {GradientPicker} from "@/components/gradient-picker";
+import {Colors} from "@/types/Events";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 
 interface IAddEvent {
     open: boolean;
@@ -37,8 +40,13 @@ const formSchema = z.object({
     end: z.date(),
     title: z.string(),
     description: z.string(),
-    color: z.string(),
-    interval: z.any()
+    color: Colors,
+    repeating_delay: z.object({
+        years: z.number().min(0).optional(),
+        months: z.number().min(0).optional(),
+        weeks: z.number().min(0).optional(),
+        days: z.number().min(0).optional(),
+    }),
 });
 
 
@@ -48,9 +56,9 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
 
     const {mutateAsync} = useMutation({
         mutationFn: async (values: z.infer<typeof formSchema>) => {
-            await apiClient.post("events/", {...values, repeating_delay: {
-                minutes: 0
-                }});
+            await apiClient.post("events/", {
+                ...values
+            });
             await client.invalidateQueries({
                 queryKey: ["events"]
             });
@@ -65,7 +73,7 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
             title: "",
             description: "",
             color: "red",
-            interval: {}
+            repeating_delay: {}
         }
     });
 
@@ -185,6 +193,57 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
                                     <FormMessage/>
                                 </FormItem>
                             )} name="description"/>
+                            <FormField control={form.control} render={({field}) => (
+                                <FormItem className="col-span-1">
+                                    <FormDescription><Label>Цвет</Label></FormDescription>
+                                    <FormControl>
+                                        <GradientPicker {...field}/>
+                                    </FormControl>
+                                    <FormMessage/>
+                                </FormItem>
+                            )} name="color"/>
+                            <FormField control={form.control} render={({field}) => (
+                                <FormItem className="col-span-1">
+                                    <FormDescription><Label>Повтор</Label></FormDescription>
+                                    <Select
+                                        defaultValue="nothing"
+                                        onValueChange={(value) => {
+                                            switch (value) {
+                                                case 'day':
+                                                    field.onChange({ days: 1 });
+                                                    break;
+                                                case 'week':
+                                                    field.onChange({ weeks: 1 });
+                                                    break;
+                                                case 'month':
+                                                    field.onChange({ months: 1 });
+                                                    break;
+                                                case 'year':
+                                                    field.onChange({ years: 1 });
+                                                    break;
+                                                case 'nothing':
+                                                default:
+                                                    field.onChange({});
+                                                    break;
+                                            }
+                                        }}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a repeat cycle"/>
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="nothing">Не повторять</SelectItem>
+                                            <SelectItem value="day">Ежедневно</SelectItem>
+                                            <SelectItem value="week">Еженедельно</SelectItem>
+                                            <SelectItem value="month">Ежемесячно</SelectItem>
+                                            <SelectItem value="year">Ежегодно</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage/>
+                                </FormItem>
+                            )} name="repeating_delay"/>
                         </div>
                         <DialogFooter>
                             <Button type="submit">Создать</Button>
