@@ -141,6 +141,7 @@ export default function CalendarPage() {
     })
 
     const handleEventChange = async ({event}: EventChangeArg) => {
+        console.log(event)
         await mutateAsync({id: event.id, start: event.start!, end: event.end!})
     }
 
