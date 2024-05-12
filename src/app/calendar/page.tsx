@@ -50,7 +50,6 @@ export default function CalendarPage() {
     const [pallet, setPallet] = React.useState<boolean>(false);
     const [addDialog, setAddDialog] = React.useState<boolean>(false);
     const [viewDialog, setViewDialog] = React.useState<boolean>(false);
-    const [editDialog, setEditDialog] = React.useState<boolean>(false);
     const [id, setId] = React.useState<string>("");
 
     React.useEffect(() => {
@@ -185,7 +184,7 @@ export default function CalendarPage() {
                 </DropdownMenu>
             </div>
             <AddEventDialog open={addDialog} setOpen={setAddDialog}/>
-            <ViewEventDialog open={viewDialog} setOpen={setViewDialog} id={id} setEdit={setEditDialog}/>
+            <ViewEventDialog open={viewDialog} setOpen={setViewDialog} id={id}/>
             <CommandDialog open={pallet} onOpenChange={setPallet}>
                 <CommandInput placeholder="Type a command or search..."/>
                 <CommandList>
@@ -224,7 +223,7 @@ export default function CalendarPage() {
                                                 className={cn("h-[24px] w-[24px] shrink-0 rounded-full", ColorMapper[item.color])}/>
                                             <div className="ml-1">
                                                 <div className="flex space-x-2 min-w-fit">
-                                                    <span>{format(item.start, "HH:mm")} - {format(item.end, "HH:mm")}</span>
+                                                    <span>{format(item.start, "dd MMM HH:mm")} - {format(item.end, "dd MMM HH:mm")}</span>
                                                 </div>
                                                 <div>
                                                     {item.title}
@@ -250,7 +249,7 @@ export default function CalendarPage() {
                                                 className={cn("h-[24px] w-[24px] shrink-0 rounded-full", ColorMapper[item.color])}/>
                                             <div className="ml-1">
                                                 <div className="flex space-x-2 min-w-fit">
-                                                    <span>{format(item.start, "HH:mm")} - {format(item.end, "HH:mm")}</span>
+                                                    <span>{format(item.start, "dd MMM HH:mm")} - {format(item.end, "dd MMM HH:mm")}</span>
                                                 </div>
                                                 <div>
                                                     {item.title}
@@ -338,8 +337,8 @@ export default function CalendarPage() {
                                 editable
                                 nowIndicator
                                 selectable
-                                eventDidMount={(e) => {
-                                    e.el.className += ` ${EventColorMapper[e.backgroundColor as Colors]}`
+                                eventClassNames={(e) => {
+                                    return EventColorMapper[e.backgroundColor as Colors]
                                 }}
 
                             />

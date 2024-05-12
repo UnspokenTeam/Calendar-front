@@ -1,5 +1,7 @@
 import {User} from "@/types/Users";
 import {z} from "zod";
+import Interval from "@/types/Interval";
+import {Notification} from "@/types/Notifications";
 
 export const Colors = z.enum([
     'red',
@@ -51,15 +53,7 @@ export interface EventItem {
     created_at: Date,
     description: string,
     color: Colors,
-    repeating_delay: {
-        years: 0,
-        months: 0,
-        weeks: 0,
-        days: 0,
-        hours: 0,
-        minutes: 0,
-        seconds: 0
-    },
+    repeating_delay?: Interval
     deleted_at: Date
 }
 
@@ -68,5 +62,5 @@ export type Events = EventItem[];
 export interface Event {
     event: EventItem,
     invited_users: User[],
-    notification_turned_on: boolean
+    notification: Notification
 }

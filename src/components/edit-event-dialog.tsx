@@ -11,7 +11,7 @@ import {
 import {Label} from "@/components/ui/label";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {Button} from "@/components/ui/button";
-import {cn} from "@/lib/utils";
+import {cn, getDefaultRepeatingOption, getNotification} from "@/lib/utils";
 import {CalendarIcon} from "lucide-react";
 import {format} from "date-fns";
 import {Calendar} from "@/components/ui/calendar";
@@ -24,17 +24,19 @@ import {Form, FormControl, FormDescription, FormField, FormItem, FormMessage} fr
 import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {useSession} from "next-auth/react";
 import apiClient from "@/lib/api-client";
 import {GradientPicker} from "@/components/gradient-picker";
 import {Colors, Event} from "@/types/Events";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {Checkbox} from "@/components/ui/checkbox";
+import {Notification} from "@/types/Notifications";
 import Interval from "@/types/Interval";
+import {DevTool} from "@hookform/devtools";
 
 interface IAddEvent {
     open: boolean;
     setOpen: (open: boolean) => void;
+    event: Event;
 }
 
 const formSchema = z.object({
@@ -48,7 +50,7 @@ const formSchema = z.object({
         months: z.number().min(0).optional(),
         weeks: z.number().min(0).optional(),
         days: z.number().min(0).optional(),
-    }),
+    }).optional(),
     notification: z.object({
         enabled: z.boolean().default(false).optional(),
         before_start: z.number().min(1).default(1),
@@ -57,15 +59,13 @@ const formSchema = z.object({
 });
 
 
-const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
+const EditEvent: React.FC<IAddEvent> = ({open, setOpen, event}) => {
     const client = useQueryClient();
-    const [edit, setEdit] = React.useState<boolean>(false);
 
     const {mutateAsync} = useMutation({
-        mutationFn: async (values: Omit<z.infer<typeof formSchema>, "notification"> & {
-            delay: { minutes: number } | null
-        }) => {
-            const res = await apiClient.post<Event>("events/", {
+        mutationFn: async (values: Omit<z.infer<typeof formSchema>, "notification">) => {
+            const res = await apiClient.put<Event>("events/", {
+                ...event.event,
                 ...values
             });
             await client.invalidateQueries({
@@ -78,36 +78,44 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: {
-            start: new Date(),
-            end: new Date(),
-            title: "",
-            description: "",
-            color: "red",
-            repeating_delay: {},
-            notification: {
-                enabled: false,
-                before_start: 1,
-                unit: "minutes"
+        defaultValues: React.useMemo(() => {
+            return {
+                start: new Date(event.event.start),
+                end: new Date(event.event.end),
+                title: event.event.title,
+                description: event.event.description ?? undefined,
+                color: event.event.color,
+                repeating_delay: event.event.repeating_delay ?? {},
+                notification: getNotification(event.notification)
             }
-        }
+        }, [event])
     });
+
+    // React.useEffect(() => {
+    //     if (event) {
+    //         form.setValue(...event.event);
+    //     }
+    // }, [event]);
 
     const notification = form.watch("notification.enabled", false);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         const notification = {
             minutes: 0,
+            hours: 0,
+            days: 0,
         };
 
         if (values.notification.enabled) {
-            notification.minutes = values.notification.before_start;
             switch (values.notification.unit) {
+                case "minutes":
+                    notification.minutes = values.notification.before_start;
+                    break
                 case "hours":
-                    notification.minutes *= 60;
+                    notification.hours = values.notification.before_start;
                     break
                 case "days":
-                    notification.minutes *= 1440;
+                    notification.days = values.notification.before_start;
                     break
             }
         }
@@ -119,8 +127,48 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
             description: values.description,
             color: values.color,
             repeating_delay: values.repeating_delay,
-            delay: values.notification.enabled ? notification : null
         });
+
+        if (values.notification.enabled) {
+            const notification = {
+                minutes: 0,
+            };
+
+            notification.minutes = values.notification.before_start;
+            switch (values.notification.unit) {
+                case "hours":
+                    notification.minutes *= 60;
+                    break
+                case "days":
+                    notification.minutes *= 1440;
+                    break
+            }
+
+            if (event.notification) {
+                await apiClient.put("notifications/", {
+                    ...event.notification,
+                    delay: {
+                        ...notification
+                    }
+                })
+            } else {
+                await apiClient.post("notifications/", {
+                    ...notification
+                }, {
+                    params: {
+                        event_id: event.event.id
+                    }
+                })
+            }
+
+
+        } else if (event.notification) {
+            await apiClient.delete("notifications/", {
+                params: {
+                    notification_id: event.notification.id
+                }
+            })
+        }
 
         form.reset();
         setOpen(false);
@@ -130,9 +178,9 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="w-auto">
                 <DialogHeader>
-                    <DialogTitle>Создать событие</DialogTitle>
+                    <DialogTitle>Изменение события</DialogTitle>
                     <DialogDescription>
-                        Не забудьте создать событие!
+                        Не забудьте сохранить изменения!
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -249,7 +297,7 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
                                 <FormItem className="col-span-1">
                                     <FormDescription><Label>Повтор</Label></FormDescription>
                                     <Select
-                                        defaultValue="nothing"
+                                        defaultValue={getDefaultRepeatingOption(field.value)}
                                         onValueChange={(value) => {
                                             switch (value) {
                                                 case 'day':
@@ -289,7 +337,7 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
                             )} name="repeating_delay"/>
                             <FormField control={form.control} render={({field}) => (
                                 <FormItem className="col-span-2">
-                                    <FormDescription><Label>Уведомления</Label></FormDescription>
+                                    <FormDescription><Label>Уведомление</Label></FormDescription>
                                     <Select onValueChange={field.onChange} disabled={!notification}
                                             defaultValue="minutes">
                                         <FormControl>
@@ -297,7 +345,7 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
                                                 <FormField render={({field: fieldn}) => (
                                                     <Checkbox checked={fieldn.value} onCheckedChange={fieldn.onChange}
                                                               className="self-center" value="true"><Label>Включить
-                                                        уведомления</Label></Checkbox>
+                                                        уведомление</Label></Checkbox>
                                                 )} name="notification.enabled"/>
                                                 <Input {...form.register('notification.before_start', {valueAsNumber: true})}
                                                        type="number" disabled={!notification} min={1}/>
@@ -317,7 +365,7 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
                             )} name="notification.unit"/>
                         </div>
                         <DialogFooter>
-                            <Button type="submit">Создать</Button>
+                            <Button type="submit">Сохранить</Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -326,6 +374,6 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
     )
 }
 
-AddEvent.displayName = "AddEvent";
+EditEvent.displayName = "EditEvent";
 
-export default AddEvent;
+export default EditEvent;

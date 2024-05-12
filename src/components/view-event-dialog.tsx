@@ -9,7 +9,6 @@ import {Textarea} from "@/components/ui/textarea";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {useSession} from "next-auth/react";
 import {Event} from "@/types/Events";
-import {Input} from "@/components/ui/input";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -21,21 +20,29 @@ import {
     AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import apiClient from "@/lib/api-client";
+import EditEvent from "@/components/edit-event-dialog";
+import {Input} from "@/components/ui/input";
+import {GradientPicker} from "@/components/gradient-picker";
+import {Skeleton} from "@/components/ui/skeleton";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {getDefaultNotificationOption, getDefaultRepeatingOption, getNotificationDelay} from "@/lib/utils";
+import {Checkbox} from "@/components/ui/checkbox";
 
 interface IViewEvent {
     open: boolean;
     setOpen: (open: boolean) => void;
     id?: string;
-    setEdit: (open: boolean) => void;
 }
 
 
-const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id, setEdit}) => {
+const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id}) => {
     const session = useSession();
     const client = useQueryClient();
-    const [deleteDialog, setDeleteDialog] = React.useState<boolean>(false)
+    const [deleteDialog, setDeleteDialog] = React.useState<boolean>(false);
+    const [edit, setEdit] = React.useState<boolean>(false);
 
-    const {data} = useQuery({
+
+    const {data, isLoading} = useQuery({
         queryKey: ["events", id],
         queryFn: async (args) => {
             const [_, id] = args.queryKey;
@@ -95,19 +102,71 @@ const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id, setEdit}) => {
                             <Input value={data?.event.title} disabled/>
                         </div>
                         <div className="col-span-2 text-muted-foreground">
-                            <div className="flex flex-row  min-w-[350px] w-auto">
-                                {format(data?.event.start ?? new Date(), "PPP HH:mm")}
-                                <div className="w-[10%]">
-
-                                </div>
-                                {format(data?.event.end ?? new Date(), "PPP HH:mm")}
+                            <div className="flex flex-row  min-w-[350px] w-auto justify-between">
+                                <div>{format(data?.event.start ?? new Date(), "PPP HH:mm")}</div>
+                                <div>{format(data?.event.end ?? new Date(), "PPP HH:mm")}</div>
                             </div>
                         </div>
                         <div className="col-span-2">
                             <Label>Описание</Label>
                             <Textarea value={data?.event.description} disabled></Textarea>
                         </div>
+                        <div>
+                            <Label>Цвет</Label>
+                            {isLoading ? <Skeleton className="h-10"/> : (
+                                <GradientPicker value={data?.event.color ?? "red"} disabled/>
+                            )
+                            }
+                        </div>
+                        <div>
+                            <Label>Повтор</Label>
+                            {isLoading ? <Skeleton className="h-10"/> : (
+                                <Select
+                                    defaultValue={getDefaultRepeatingOption(data?.event.repeating_delay)} disabled>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Выберите интервал повторения"/>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="nothing">Не повторять</SelectItem>
+                                        <SelectItem value="day">Ежедневно</SelectItem>
+                                        <SelectItem value="week">Еженедельно</SelectItem>
+                                        <SelectItem value="month">Ежемесячно</SelectItem>
+                                        <SelectItem value="year">Ежегодно</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+
+                        </div>
+                        <div className="col-span-2">
+                            <Label>Уведомление</Label>
+                            {isLoading ? <Skeleton className="h-10"/> : (<div className="flex flex-row">
+                                {getDefaultNotificationOption(data?.notification?.delay) === "nothing" ? "Выключено" : (
+                                    <>
+                                        <Checkbox
+                                            className="self-center"
+                                            checked={getDefaultNotificationOption(data?.notification.delay) !== "nothing"}
+                                            disabled/>
+                                        <Input disabled
+                                               value={getNotificationDelay(data?.notification.delay.minutes ?? 0)}/>
+                                        <Select disabled
+                                                defaultValue={getDefaultNotificationOption(data?.notification.delay)}>
+                                            <SelectTrigger>
+                                                <SelectValue/>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="minutes">мин.</SelectItem>
+                                                <SelectItem value="hours">час.</SelectItem>
+                                                <SelectItem value="days">дн.</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </>
+                                )}
+
+                            </div>)}
+
+                        </div>
                     </div>
+
                     <DialogFooter className="!justify-center !space-x-5">
                         <Button variant="outline" className="px-4 bg-[#E1EAFF]"
                                 onClick={() => setEdit(true)}>Изменить</Button>
@@ -116,8 +175,10 @@ const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id, setEdit}) => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            {
+                data && <EditEvent open={edit} setOpen={setEdit} event={data}/>
+            }
         </>
-
     )
 }
 
