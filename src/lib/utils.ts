@@ -37,15 +37,17 @@ export function getNotification(notification: Notification | null): z.infer<type
     let beforeStart = 1; // Значение по умолчанию
     let unit: 'minutes' | 'hours' | 'days' = 'minutes'; // Единица измерения по умолчанию
 
-    if (notification.delay?.days) {
-        beforeStart = notification.delay.days;
-        unit = 'days';
-    } else if (notification.delay.hours) {
-        beforeStart = notification.delay.hours;
-        unit = 'hours';
-    } else if (notification.delay.minutes) {
-        beforeStart = notification.delay.minutes;
-        unit = 'minutes';
+    if (notification.delay?.minutes) {
+        if (notification.delay?.minutes % 1440 === 0) {
+            beforeStart = Math.floor(notification.delay.minutes / 1440);
+            unit = 'days';
+        } else if (notification.delay?.minutes % 60 === 0) {
+            beforeStart = Math.floor(notification.delay.minutes / 60);
+            unit = 'hours';
+        } else {
+            beforeStart = notification.delay.minutes;
+            unit = 'minutes';
+        }
     }
 
     return {

@@ -11,8 +11,8 @@ import {
 import {Label} from "@/components/ui/label";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {Button} from "@/components/ui/button";
-import {cn, getDefaultRepeatingOption, getNotification} from "@/lib/utils";
-import {CalendarIcon} from "lucide-react";
+import {cn, getDefaultNotificationOption, getDefaultRepeatingOption, getNotification} from "@/lib/utils";
+import {CalendarIcon, RotateCw} from "lucide-react";
 import {format} from "date-fns";
 import {Calendar} from "@/components/ui/calendar";
 import {TimePickerDemo} from "@/components/ui/time-picker-demo";
@@ -26,12 +26,12 @@ import {Textarea} from "@/components/ui/textarea";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 import apiClient from "@/lib/api-client";
 import {GradientPicker} from "@/components/gradient-picker";
-import {Colors, Event} from "@/types/Events";
+import {Colors, Event, EventDescription} from "@/types/Events";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {Checkbox} from "@/components/ui/checkbox";
-import {Notification} from "@/types/Notifications";
-import Interval from "@/types/Interval";
-import {DevTool} from "@hookform/devtools";
+import * as events from "node:events";
+import {toast} from "sonner";
+import {Skeleton} from "@/components/ui/skeleton";
 
 interface IAddEvent {
     open: boolean;
@@ -64,6 +64,8 @@ const EditEvent: React.FC<IAddEvent> = ({open, setOpen, event}) => {
 
     const {mutateAsync} = useMutation({
         mutationFn: async (values: Omit<z.infer<typeof formSchema>, "notification">) => {
+            values.start.setSeconds(0);
+            values.end.setSeconds(0);
             const res = await apiClient.put<Event>("events/", {
                 ...event.event,
                 ...values
@@ -76,26 +78,48 @@ const EditEvent: React.FC<IAddEvent> = ({open, setOpen, event}) => {
         },
     })
 
+    const [gpt, setGpt] = React.useState<boolean>(false);
+
+    const generateTitle = async (onChange: (event: unknown) => unknown) => {
+        setGpt(true);
+        try {
+            const res = (await apiClient.get<EventDescription>("events/description/", {
+                params: {
+                    event_title: title
+                }
+            })).data
+            onChange(res);
+            setGpt(false);
+        } catch {
+            toast.error("Что-то пошло не так")
+            setGpt(false);
+        }
+    }
+
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: React.useMemo(() => {
-            return {
-                start: new Date(event.event.start),
-                end: new Date(event.event.end),
-                title: event.event.title,
-                description: event.event.description ?? undefined,
-                color: event.event.color,
-                repeating_delay: event.event.repeating_delay ?? {},
-                notification: getNotification(event.notification)
-            }
-        }, [event])
+        defaultValues: {
+            start: new Date(),
+            end: new Date(),
+            title: "",
+            description: "",
+            color: "red",
+            repeating_delay: {},
+            notification: {}
+        },
+        values: {
+            start: new Date(event.event.start),
+            end: new Date(event.event.end),
+            title: event.event.title,
+            description: event.event.description ?? "",
+            color: event.event.color,
+            repeating_delay: event.event.repeating_delay ?? {},
+            notification: getNotification(event.notification)
+        }
     });
 
-    // React.useEffect(() => {
-    //     if (event) {
-    //         form.setValue(...event.event);
-    //     }
-    // }, [event]);
+    const title = form.watch("title");
 
     const notification = form.watch("notification.enabled", false);
 
@@ -169,6 +193,10 @@ const EditEvent: React.FC<IAddEvent> = ({open, setOpen, event}) => {
                 }
             })
         }
+
+        await client.invalidateQueries({
+            queryKey: ["notifications"]
+        })
 
         form.reset();
         setOpen(false);
@@ -279,7 +307,16 @@ const EditEvent: React.FC<IAddEvent> = ({open, setOpen, event}) => {
                                 <FormItem className="col-span-2">
                                     <FormDescription><Label>Описание события</Label></FormDescription>
                                     <FormControl>
-                                        <Textarea {...field}/>
+                                        <div className="relative">
+                                            {gpt ? <Skeleton className="w-full min-h-[80px]"/> : (
+                                                <Textarea {...field}/>
+                                            )}
+                                            <Button variant="outline"
+                                                    className="absolute right-0 bottom-0" type="button"
+                                                    title="Сгенерировать описание"
+                                                    onClick={() => generateTitle(field.onChange)}
+                                                    disabled={gpt}><RotateCw/></Button>
+                                        </div>
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>
@@ -339,10 +376,11 @@ const EditEvent: React.FC<IAddEvent> = ({open, setOpen, event}) => {
                                 <FormItem className="col-span-2">
                                     <FormDescription><Label>Уведомление</Label></FormDescription>
                                     <Select onValueChange={field.onChange} disabled={!notification}
-                                            defaultValue="minutes">
+                                            defaultValue={getDefaultNotificationOption(event.notification?.delay ?? {})}>
                                         <FormControl>
                                             <div className="flex flex-row space-x-1.5">
                                                 <FormField render={({field: fieldn}) => (
+                                                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                                                     <Checkbox checked={fieldn.value} onCheckedChange={fieldn.onChange}
                                                               className="self-center" value="true"><Label>Включить
                                                         уведомление</Label></Checkbox>

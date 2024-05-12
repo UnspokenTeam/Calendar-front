@@ -12,7 +12,7 @@ import {Label} from "@/components/ui/label";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
-import {CalendarIcon} from "lucide-react";
+import {CalendarIcon, RotateCw} from "lucide-react";
 import {format} from "date-fns";
 import {Calendar} from "@/components/ui/calendar";
 import {TimePickerDemo} from "@/components/ui/time-picker-demo";
@@ -24,13 +24,13 @@ import {Form, FormControl, FormDescription, FormField, FormItem, FormMessage} fr
 import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {useSession} from "next-auth/react";
 import apiClient from "@/lib/api-client";
 import {GradientPicker} from "@/components/gradient-picker";
-import {Colors, Event} from "@/types/Events";
+import {Colors, Event, EventDescription} from "@/types/Events";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {Checkbox} from "@/components/ui/checkbox";
-import Interval from "@/types/Interval";
+import {Skeleton} from "@/components/ui/skeleton";
+import {toast} from "sonner";
 
 interface IAddEvent {
     open: boolean;
@@ -59,12 +59,14 @@ const formSchema = z.object({
 
 const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
     const client = useQueryClient();
-    const [edit, setEdit] = React.useState<boolean>(false);
+    const [gpt, setGpt] = React.useState<boolean>(false);
 
     const {mutateAsync} = useMutation({
         mutationFn: async (values: Omit<z.infer<typeof formSchema>, "notification"> & {
             delay: { minutes: number } | null
         }) => {
+            values.start.setSeconds(0);
+            values.end.setSeconds(0);
             const res = await apiClient.post<Event>("events/", {
                 ...values
             });
@@ -72,9 +74,27 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
                 queryKey: ["events"]
             });
 
+            toast.success("Событие созданно успешно!")
+
             return res.data;
         },
     })
+
+    const generateTitle = async (onChange: (event: unknown) => unknown) => {
+        setGpt(true);
+        try {
+            const res = (await apiClient.get<EventDescription>("events/description/", {
+                params: {
+                    event_title: title
+                }
+            })).data
+            onChange(res);
+            setGpt(false);
+        } catch {
+            toast.error("Что-то пошло не так")
+            setGpt(false);
+        }
+    }
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -94,6 +114,7 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
     });
 
     const notification = form.watch("notification.enabled", false);
+    const title = form.watch("title");
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         const notification = {
@@ -153,7 +174,7 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
                                                 >
                                                     <CalendarIcon className="mr-2 h-4 w-4"/>
                                                     {field.value ? (
-                                                        format(field.value, "PPP HH:mm:ss")
+                                                        format(field.value, "PPP HH:mm")
                                                     ) : (
                                                         <span>Выберите начало</span>
                                                     )}
@@ -193,7 +214,7 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
                                                 >
                                                     <CalendarIcon className="mr-2 h-4 w-4"/>
                                                     {field.value ? (
-                                                        format(field.value, "PPP HH:mm:ss")
+                                                        format(field.value, "PPP HH:mm")
                                                     ) : (
                                                         <span>Выберите конец</span>
                                                     )}
@@ -231,7 +252,16 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
                                 <FormItem className="col-span-2">
                                     <FormDescription><Label>Описание события</Label></FormDescription>
                                     <FormControl>
-                                        <Textarea {...field}/>
+                                        <div className="relative">
+                                            {gpt ? <Skeleton className="w-full min-h-[80px]"/> : (
+                                                <Textarea {...field}/>
+                                            )}
+                                            <Button variant="outline"
+                                                    className="absolute right-0 bottom-0" type="button"
+                                                    title="Сгенерировать описание"
+                                                    onClick={() => generateTitle(field.onChange)}
+                                                    disabled={gpt}><RotateCw/></Button>
+                                        </div>
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>
@@ -295,6 +325,7 @@ const AddEvent: React.FC<IAddEvent> = ({open, setOpen}) => {
                                         <FormControl>
                                             <div className="flex flex-row space-x-1.5">
                                                 <FormField render={({field: fieldn}) => (
+                                                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                                                     <Checkbox checked={fieldn.value} onCheckedChange={fieldn.onChange}
                                                               className="self-center" value="true"><Label>Включить
                                                         уведомления</Label></Checkbox>

@@ -27,6 +27,7 @@ import {Skeleton} from "@/components/ui/skeleton";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {getDefaultNotificationOption, getDefaultRepeatingOption, getNotificationDelay} from "@/lib/utils";
 import {Checkbox} from "@/components/ui/checkbox";
+import {toast} from "sonner";
 
 interface IViewEvent {
     open: boolean;
@@ -63,6 +64,8 @@ const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id}) => {
             await client.invalidateQueries({
                 queryKey: ["events"]
             });
+
+            toast.success("Событие удаленно успешно!")
         },
     })
 
@@ -99,17 +102,35 @@ const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id}) => {
                     <div className="grid grid-cols-2 gap-1 py-4">
                         <div className="col-span-2">
                             <Label>Название</Label>
-                            <Input value={data?.event.title} disabled/>
+                            {isLoading ? <Skeleton className="h-10 w-full"/> : (
+                                <Input value={data?.event.title} readOnly disabled/>
+                            )}
                         </div>
-                        <div className="col-span-2 text-muted-foreground">
-                            <div className="flex flex-row  min-w-[350px] w-auto justify-between">
-                                <div>{format(data?.event.start ?? new Date(), "PPP HH:mm")}</div>
-                                <div>{format(data?.event.end ?? new Date(), "PPP HH:mm")}</div>
+                        <div className="col-span-2">
+                            <div className="grid grid-cols-2  min-w-[350px] w-auto justify-between">
+                                <div className="flex flex-col">
+                                    <Label>Начало</Label>
+                                    {isLoading ? <Skeleton className="h-6 w-full"/> : (
+                                        <div className="text-muted-foreground">
+                                            {format(data?.event.start ?? new Date(), "PPP HH:mm")}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex flex-col">
+                                    <Label>Конец</Label>
+                                    {isLoading ? <Skeleton className="h-6 w-full"/> : (
+                                        <div className="text-muted-foreground">
+                                            {format(data?.event.end ?? new Date(), "PPP HH:mm")}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <div className="col-span-2">
                             <Label>Описание</Label>
-                            <Textarea value={data?.event.description} disabled></Textarea>
+                            {isLoading ? <Skeleton className="min-h-[80px] w-full"/> : (
+                                <Textarea value={data?.event.description} readOnly disabled/>
+                            )}
                         </div>
                         <div>
                             <Label>Цвет</Label>
@@ -120,7 +141,7 @@ const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id}) => {
                         </div>
                         <div>
                             <Label>Повтор</Label>
-                            {isLoading ? <Skeleton className="h-10"/> : (
+                            {isLoading ? <Skeleton className="h-10 w-full"/> : (
                                 <Select
                                     defaultValue={getDefaultRepeatingOption(data?.event.repeating_delay)} disabled>
                                     <SelectTrigger>
@@ -139,37 +160,41 @@ const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id}) => {
                         </div>
                         <div className="col-span-2">
                             <Label>Уведомление</Label>
-                            {isLoading ? <Skeleton className="h-10"/> : (<div className="flex flex-row">
-                                {getDefaultNotificationOption(data?.notification?.delay) === "nothing" ? "Выключено" : (
-                                    <>
-                                        <Checkbox
-                                            className="self-center"
-                                            checked={getDefaultNotificationOption(data?.notification.delay) !== "nothing"}
-                                            disabled/>
-                                        <Input disabled
-                                               value={getNotificationDelay(data?.notification.delay.minutes ?? 0)}/>
-                                        <Select disabled
-                                                defaultValue={getDefaultNotificationOption(data?.notification.delay)}>
-                                            <SelectTrigger>
-                                                <SelectValue/>
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="minutes">мин.</SelectItem>
-                                                <SelectItem value="hours">час.</SelectItem>
-                                                <SelectItem value="days">дн.</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </>
-                                )}
+                            {isLoading ? <Skeleton className="h-10 w-full"/> : (
+                                <div className="flex flex-row text-muted-foreground">
+                                    {getDefaultNotificationOption(data?.notification?.delay) === "nothing" ? "Выключено" : (
+                                        <>
+                                            <Checkbox
+                                                className="self-center"
+                                                checked={getDefaultNotificationOption(data?.notification.delay) !== "nothing"}
+                                                disabled/>
+                                            <Input readOnly disabled
+                                                   value={getNotificationDelay(data?.notification.delay.minutes ?? 0)}/>
+                                            <Select disabled
+                                                    defaultValue={getDefaultNotificationOption(data?.notification.delay)}>
+                                                <SelectTrigger>
+                                                    <SelectValue/>
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="minutes">мин.</SelectItem>
+                                                    <SelectItem value="hours">час.</SelectItem>
+                                                    <SelectItem value="days">дн.</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </>
+                                    )}
 
-                            </div>)}
+                                </div>)}
 
                         </div>
                     </div>
 
                     <DialogFooter className="!justify-center !space-x-5">
                         <Button variant="outline" className="px-4 bg-[#E1EAFF]"
-                                onClick={() => setEdit(true)}>Изменить</Button>
+                                onClick={() => {
+                                    setEdit(true)
+                                    setOpen(false)
+                                }}>Изменить</Button>
                         <Button variant="default" className="px-6"
                                 onClick={() => setDeleteDialog(true)}>Удалить</Button>
                     </DialogFooter>
