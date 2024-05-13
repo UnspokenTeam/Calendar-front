@@ -52,6 +52,7 @@ export default function CalendarPage() {
     const [addDialog, setAddDialog] = React.useState<boolean>(false);
     const [viewDialog, setViewDialog] = React.useState<boolean>(false);
     const [id, setId] = React.useState<string>("");
+    const notifications = React.useRef(null);
 
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -168,7 +169,7 @@ export default function CalendarPage() {
 
     return (
         <main className="flex h-screen w-screen flex-col bg-[#001220]">
-            <Notifications/>
+            <Notifications ref={notifications}/>
             <div className="absolute top-2 right-2">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

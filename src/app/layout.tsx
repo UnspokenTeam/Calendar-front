@@ -27,8 +27,8 @@ export default function RootLayout({
         <QueryProvider>
             <SessionProviderF>
                 <body className={`font-sans ${inter.variable}`}>
-                    <main>{children}</main>
-                    <Toaster/>
+                    {children}
+                    <Toaster richColors closeButton/>
                 </body>
             </SessionProviderF>
         </QueryProvider>
