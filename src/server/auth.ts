@@ -118,7 +118,10 @@ export const authOptions: NextAuthOptions = {
         password: {}
       },
       authorize: async (credentials) => {
-        const answer = await apiClient.post<AuthResponse>("users/login", credentials);
+        const answer = await apiClient.post<AuthResponse>("users/login", {
+          username: credentials?.email,
+          password: credentials?.password
+        });
 
         if(answer.status != 200) {
           return null;
