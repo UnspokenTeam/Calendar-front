@@ -218,9 +218,9 @@ export default function CalendarPage() {
                 </CommandList>
             </CommandDialog>
             <div
-                className="flex-grow w-full bg-white flex flex-row">
+                className="flex-grow w-full bg-white flex flex-col md:flex-row">
                 <div
-                    className="flex-grow w-[20%] max-w-[500px] bg-[#E1EAFF] flex flex-col items-center px-[15px] pt-5 space-y-2 h-screen">
+                    className="md:flex-grow md:w-[20%] md:max-w-[500px] bg-[#E1EAFF] flex flex-col items-center px-[15px] pt-5 space-y-2 md:h-screen">
                     <div
                         className="h-auto pl-2 w-full flex mb-5">
                         <span className="font-bold text-2xl">Calendar</span>

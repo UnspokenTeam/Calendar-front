@@ -7,6 +7,8 @@ import {useForm} from "react-hook-form";
 import {z} from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {signIn} from "next-auth/react";
+import {toast} from "sonner";
+import {useRouter} from "next/navigation";
 
 const formSchema = z.object({
     email: z.string().email({
@@ -25,9 +27,17 @@ const LoginForm: React.FC = () => {
             password: ""
         }
     });
+    const router = useRouter();
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        await signIn("login", {...values, callbackUrl: "/calendar", redirect: true});
+        const res = await signIn("login", {...values, redirect: false});
+        if (res?.error) {
+            toast.error("Неверный логин или пароль");
+            return
+        }
+
+        toast.success("Успешный вход")
+        router.push("/calendar");
     }
 
     return (
