@@ -10,7 +10,10 @@ export default async function HomePage() {
 
     if (session) {
         redirect("/calendar");
+    } else {
+        redirect("/login");
     }
+
 
     return (
         <main className="flex h-screen flex-col bg-[#001220]">
