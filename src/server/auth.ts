@@ -65,13 +65,11 @@ export const authOptions: NextAuthOptions = {
         }
     },
     events: {
-        signOut: async ({token}) => {
+        signOut: async () => {
             try {
                 await apiClient.post("users/logout", {}, {
-                    params: {
-                        // eslint-disable-next-line
-                        //@ts-expect-error
-                        access_token: token.user.access_token as string
+                    headers: {
+                        Authorization: `Bearer ${apiClient.defaults.headers.common.Authorization as string}`
                     }
                 });
             } catch {
