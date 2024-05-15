@@ -1,6 +1,6 @@
 "use client";
 
-import {Plus, User} from "lucide-react";
+import {CalendarIcon, Plus, User} from "lucide-react";
 import React from "react";
 import {Calendar} from "@/components/ui/calendar";
 import {Button} from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
     CommandGroup,
     CommandInput,
     CommandItem,
-    CommandList
+    CommandList, CommandSeparator
 } from "@/components/ui/command";
 import FullCalendar from '@fullcalendar/react';
 import timeGridWeek from '@fullcalendar/timegrid';
@@ -30,11 +30,12 @@ import {
 import {signOut, useSession} from "next-auth/react";
 import AddEventDialog from "@/components/add-event-dialog";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import {ColorMapper, Colors, EventColorMapper, Events} from "@/types/Events";
+import {BorderMapper, ColorMapper, Colors, EventColorMapper, Events} from "@/types/Events";
 import ViewEventDialog from "@/components/view-event-dialog";
 import apiClient from "@/lib/api-client";
 import {EventChangeArg} from "@fullcalendar/core";
 import {cn} from "@/lib/utils";
+import Notifications from "@/components/notifications";
 
 export default function CalendarPage() {
     const session = useSession();
@@ -50,8 +51,8 @@ export default function CalendarPage() {
     const [pallet, setPallet] = React.useState<boolean>(false);
     const [addDialog, setAddDialog] = React.useState<boolean>(false);
     const [viewDialog, setViewDialog] = React.useState<boolean>(false);
-    const [editDialog, setEditDialog] = React.useState<boolean>(false);
     const [id, setId] = React.useState<string>("");
+    const notifications = React.useRef(null);
 
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -78,7 +79,10 @@ export default function CalendarPage() {
                     start: startOfDay(subDays(startOfMonth(date as Date), 7)),
                     end: endOfDay(subDays(endOfMonth(date as Date), 7)),
                 }
-            })).data
+            })).data.map((item) => {
+                item.id = `${item.id}&${Math.floor(Math.random() * 100)}`
+                return item
+            })
 
             return res;
 
@@ -131,7 +135,8 @@ export default function CalendarPage() {
             item.end = end;
 
             await apiClient.put("events/", {
-                ...item
+                ...item,
+                id: item.id.split("&")[0]!
             });
 
             await client.invalidateQueries({
@@ -141,6 +146,8 @@ export default function CalendarPage() {
     })
 
     const handleEventChange = async ({event}: EventChangeArg) => {
+        event.start?.setSeconds(0);
+        event.end?.setSeconds(0);
         await mutateAsync({id: event.id, start: event.start!, end: event.end!})
     }
 
@@ -162,6 +169,7 @@ export default function CalendarPage() {
 
     return (
         <main className="flex h-screen w-screen flex-col bg-[#001220]">
+            <Notifications ref={notifications}/>
             <div className="absolute top-2 right-2">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -184,22 +192,35 @@ export default function CalendarPage() {
                 </DropdownMenu>
             </div>
             <AddEventDialog open={addDialog} setOpen={setAddDialog}/>
-            <ViewEventDialog open={viewDialog} setOpen={setViewDialog} id={id} setEdit={setEditDialog}/>
+            <ViewEventDialog open={viewDialog} setOpen={setViewDialog} id={id}/>
             <CommandDialog open={pallet} onOpenChange={setPallet}>
-                <CommandInput placeholder="Type a command or search..."/>
+                <CommandInput placeholder="Начните вводить название события..."/>
                 <CommandList>
-                    <CommandEmpty>No results found.</CommandEmpty>
-                    <CommandGroup heading="Suggestions">
-                        <CommandItem>Calendar</CommandItem>
-                        <CommandItem>Search Emoji</CommandItem>
-                        <CommandItem>Calculator</CommandItem>
+                    <CommandEmpty>Ничего не найдено</CommandEmpty>
+                    <CommandGroup heading="События">
+                        {events?.map((item) => (
+                            <CommandItem key={item.id} value={item.title} keywords={[item.title]} onSelect={(id) => {
+                                setId(item.id.split("&")[0]!);
+                                setViewDialog(true);
+                                setPallet(false);
+                            }} className={cn("mb-1.5", BorderMapper[item.color])}>
+                                    <div className="ml-1">
+                                        <div className="flex space-x-2 min-w-fit">
+                                            <span>{format(item.start, "dd MMM HH:mm")} - {format(item.end, "dd MMM HH:mm")}</span>
+                                        </div>
+                                        <div>
+                                            {item.title}
+                                        </div>
+                                    </div>
+                            </CommandItem>
+                        ))}
                     </CommandGroup>
                 </CommandList>
             </CommandDialog>
             <div
-                className="flex-grow w-full bg-white flex flex-row">
+                className="flex-grow w-full bg-white flex flex-col md:flex-row">
                 <div
-                    className="flex-grow w-[20%] max-w-[500px] bg-[#E1EAFF] flex flex-col items-center px-[15px] pt-5 space-y-2 h-screen">
+                    className="md:flex-grow md:w-[20%] md:max-w-[500px] bg-[#E1EAFF] flex flex-col items-center px-[15px] pt-5 space-y-2 md:h-screen">
                     <div
                         className="h-auto pl-2 w-full flex mb-5">
                         <span className="font-bold text-2xl">Calendar</span>
@@ -214,7 +235,7 @@ export default function CalendarPage() {
                     <div className="overflow-y-auto no-scrollbar w-full">
                         {(eventsToday && eventsToday.length > 0) && (
                             <>
-                                <hr className="h-[2px] bg-[#BCBCBC] w-full px-[15px] my-4"/>
+                            <hr className="h-[2px] bg-[#BCBCBC] w-full px-[15px] my-4"/>
                                 <div className="flex flex-col w-full max-w-full space-y-3">
                                     <div className="self-start">Сегодня {format(today, "dd/MM/yyyy")}</div>
                                     {eventsToday?.map((item) => (
@@ -223,7 +244,7 @@ export default function CalendarPage() {
                                                 className={cn("h-[24px] w-[24px] shrink-0 rounded-full", ColorMapper[item.color])}/>
                                             <div className="ml-1">
                                                 <div className="flex space-x-2 min-w-fit">
-                                                    <span>{format(item.start, "HH:mm")} - {format(item.end, "HH:mm")}</span>
+                                                    <span>{format(item.start, "dd MMM HH:mm")} - {format(item.end, "dd MMM HH:mm")}</span>
                                                 </div>
                                                 <div>
                                                     {item.title}
@@ -249,7 +270,7 @@ export default function CalendarPage() {
                                                 className={cn("h-[24px] w-[24px] shrink-0 rounded-full", ColorMapper[item.color])}/>
                                             <div className="ml-1">
                                                 <div className="flex space-x-2 min-w-fit">
-                                                    <span>{format(item.start, "HH:mm")} - {format(item.end, "HH:mm")}</span>
+                                                    <span>{format(item.start, "dd MMM HH:mm")} - {format(item.end, "dd MMM HH:mm")}</span>
                                                 </div>
                                                 <div>
                                                     {item.title}
@@ -291,7 +312,7 @@ export default function CalendarPage() {
                                 initialDate={date}
                                 events={events}
                                 eventClick={(event) => {
-                                    setId(event.event.id);
+                                    setId(event.event.id.split("&")[0]!);
                                     setViewDialog(true);
                                 }}
                                 eventChange={handleEventChange}
@@ -302,8 +323,8 @@ export default function CalendarPage() {
                                 editable
                                 nowIndicator
                                 selectable
-                                eventDidMount={(e) => {
-                                    e.el.className += ` ${EventColorMapper[e.backgroundColor as Colors]}`
+                                eventClassNames={(e) => {
+                                    return EventColorMapper[e.backgroundColor as Colors]
                                 }}
                             />
                         </TabsContent>
@@ -326,7 +347,7 @@ export default function CalendarPage() {
                                 initialDate={date}
                                 events={events}
                                 eventClick={(event) => {
-                                    setId(event.event.id);
+                                    setId(event.event.id.split("&")[0]!);
                                     setViewDialog(true);
                                 }}
                                 eventChange={handleEventChange}
@@ -337,8 +358,8 @@ export default function CalendarPage() {
                                 editable
                                 nowIndicator
                                 selectable
-                                eventDidMount={(e) => {
-                                    e.el.className += ` ${EventColorMapper[e.backgroundColor as Colors]}`
+                                eventClassNames={(e) => {
+                                    return EventColorMapper[e.backgroundColor as Colors]
                                 }}
 
                             />
@@ -350,7 +371,7 @@ export default function CalendarPage() {
                                 initialDate={date}
                                 events={events}
                                 eventClick={(event) => {
-                                    setId(event.event.id);
+                                    setId(event.event.id.split("&")[0]!);
                                     setViewDialog(true);
                                 }}
                                 eventChange={handleEventChange}
@@ -361,8 +382,8 @@ export default function CalendarPage() {
                                 editable
                                 nowIndicator
                                 selectable
-                                eventDidMount={(e) => {
-                                    e.el.className += ` ${EventColorMapper[e.backgroundColor as Colors]}`
+                                eventClassNames={(e) => {
+                                    return EventColorMapper[e.backgroundColor as Colors]
                                 }}
                             />
                         </TabsContent>

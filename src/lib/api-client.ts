@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, {AxiosError} from 'axios';
 import {getSession} from 'next-auth/react';
 
 const baseURL = "http://127.0.0.1:8000";
@@ -23,8 +23,9 @@ const ApiClient = () => {
         (response) => {
             return response;
         },
-        (error) => {
-            console.log(`error`, error);
+        (error: AxiosError) => {
+            // console.log(`error`, error);
+            return error
         },
     );
 

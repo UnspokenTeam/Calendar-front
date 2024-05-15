@@ -1,5 +1,7 @@
 import {User} from "@/types/Users";
 import {z} from "zod";
+import Interval from "@/types/Interval";
+import {Notification} from "@/types/Notifications";
 
 export const Colors = z.enum([
     'red',
@@ -27,6 +29,19 @@ export const ColorMapper = {
     "lightBlue": "bg-blue-200"
 };
 
+export const BorderMapper = {
+    "red": "border-l-4 border-red-500",
+    "blue": "border-l-4 border-blue-500",
+    "green": "border-l-4 border-green-500",
+    "yellow": "border-l-4 border-yellow-500",
+    "orange": "border-l-4 border-orange-500",
+    "purple": "border-l-4 border-purple-500",
+    "pink": "border-l-4 border-pink-500",
+    "teal": "border-l-4 border-teal-500",
+    "fuchsia": "border-l-4 border-fuchsia-500",
+    "lightBlue": "border-l-4 border-blue-200"
+}
+
 export const EventColorMapper = {
     "red": "!bg-red-100/50 !border-l-4 !border-r-0 !border-y-0 !border-red-500 !text-red-500",
     "blue": "!bg-blue-100/50 !border-l-4 !border-r-0 !border-y-0 !border-blue-500 !text-blue-500",
@@ -51,15 +66,7 @@ export interface EventItem {
     created_at: Date,
     description: string,
     color: Colors,
-    repeating_delay: {
-        years: 0,
-        months: 0,
-        weeks: 0,
-        days: 0,
-        hours: 0,
-        minutes: 0,
-        seconds: 0
-    },
+    repeating_delay?: Interval
     deleted_at: Date
 }
 
@@ -68,5 +75,7 @@ export type Events = EventItem[];
 export interface Event {
     event: EventItem,
     invited_users: User[],
-    notification_turned_on: boolean
+    notification: Notification
 }
+
+export type EventDescription = string;
