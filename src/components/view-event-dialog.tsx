@@ -37,7 +37,6 @@ interface IViewEvent {
 
 
 const ViewEvent: React.FC<IViewEvent> = ({open, setOpen, id}) => {
-    const session = useSession();
     const client = useQueryClient();
     const [deleteDialog, setDeleteDialog] = React.useState<boolean>(false);
     const [edit, setEdit] = React.useState<boolean>(false);

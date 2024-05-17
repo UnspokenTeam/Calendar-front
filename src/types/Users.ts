@@ -9,7 +9,7 @@ export interface User {
     email: string;
     created_at: Date;
     suspended_at: Date;
-    type: Role;
+    role: Role;
 }
 
 export interface AuthResponse {

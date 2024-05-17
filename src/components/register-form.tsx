@@ -52,7 +52,7 @@ const RegisterForm: React.FC = () => {
                         <FormControl>
                             <Input startIcon={UserRound} placeholder="Имя пользователя" {...field}/>
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage/>
                     </FormItem>
                 )} name="username"/>
                 <FormField control={form.control} render={({field}) => (
@@ -61,7 +61,7 @@ const RegisterForm: React.FC = () => {
                             <Input startIcon={Mail} placeholder="Электронная почта"
                                    type="email" {...field}/>
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage/>
                     </FormItem>
                 )} name="email"/>
                 <FormField control={form.control} render={({field}) => (
@@ -69,7 +69,7 @@ const RegisterForm: React.FC = () => {
                         <FormControl>
                             <Input startIcon={Key} placeholder="Пароль" type="password" {...field}/>
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage/>
                     </FormItem>
                 )} name="password"/>
                 <Button className="bg-[#224A88] hover:bg-blue-900 active:bg-blue-950 self-center"

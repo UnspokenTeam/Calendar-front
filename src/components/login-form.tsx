@@ -1,7 +1,7 @@
 "use client";
 import {Form, FormControl, FormField, FormItem, FormMessage} from "@/components/ui/form";
 import {Input} from "@/components/ui/input";
-import {Key, Mail, UserRound} from "lucide-react";
+import {Key, Mail} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {useForm} from "react-hook-form";
 import {z} from "zod";
@@ -49,7 +49,7 @@ const LoginForm: React.FC = () => {
                             <Input startIcon={Mail} placeholder="Электронная почта"
                                    type="email" {...field}/>
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage/>
                     </FormItem>
                 )} name="email"/>
                 <FormField control={form.control} render={({field}) => (
@@ -57,7 +57,7 @@ const LoginForm: React.FC = () => {
                         <FormControl>
                             <Input startIcon={Key} placeholder="Пароль" type="password" {...field}/>
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage/>
                     </FormItem>
                 )} name="password"/>
                 <Button className="bg-[#224A88] hover:bg-blue-900 active:bg-blue-950 self-center"

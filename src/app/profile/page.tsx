@@ -1,52 +1,16 @@
 "use client";
 
-import {Key, Mail, UserRound, X} from "lucide-react";
-import React, {useState} from "react";
+import {X} from "lucide-react";
+import React from "react";
 import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {useForm} from 'react-hook-form';
-import {z} from 'zod';
-import {zodResolver} from '@hookform/resolvers/zod';
 import {useRouter} from "next/navigation";
-import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
-import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
+import {useSession} from "next-auth/react";
+import EditForm from "@/components/edit-form";
+import PasswordDialog from "@/components/password-dialog";
 
 
 export default function ProfilePage() {
-    // const session = useSession();
     const router = useRouter();
-    const schema = z.object({
-        email: z.string().email({
-            message: "Введите корректную почту"
-        }),
-        username: z.string().min(5, {
-            message: "Имя пользователя должно состоять хотя бы из 5 символов"
-        }),
-    });
-
-    const passwordSchema = z.object({
-        password: z.string().min(10, {
-            message: "Минимальная длина пароля 10 символов"
-        }),
-    });
-
-    const userForm = useForm<z.infer<typeof schema>>({
-        resolver: zodResolver(schema),
-        defaultValues: {
-            email: "",
-            username: "",
-        }
-    });
-    const passwordForm = useForm({
-        resolver: zodResolver(passwordSchema),
-        defaultValues: {
-            password: ""
-        }
-    });
-
-    const onSubmit = async () => {
-
-    };
 
     return (
         <main className="flex h-screen w-screen flex-col bg-[#001220]">
@@ -84,67 +48,8 @@ export default function ProfilePage() {
                             onClick={() => router.push("/calendar")}><X/></Button>
                 </div>
 
-                <Form {...userForm}>
-                    <form onSubmit={userForm.handleSubmit(onSubmit)} className="space-y-3 flex flex-col">
-                        <FormField control={userForm.control} render={({field}) => (
-                            <FormItem>
-                                <FormLabel>
-                                    Электронная почта
-                                </FormLabel>
-                                <FormControl>
-                                    <Input startIcon={Mail} {...field}/>
-                                </FormControl>
-                                <FormMessage/>
-                            </FormItem>
-                        )} name="email"/>
-                        <FormField control={userForm.control} render={({field}) => (
-                            <FormItem>
-                                <FormLabel>
-                                    Имя пользователя
-                                </FormLabel>
-                                <FormControl>
-                                    <Input startIcon={UserRound} {...field}/>
-                                </FormControl>
-                                <FormMessage/>
-                            </FormItem>
-                        )} name="username"/>
-                        <Button className="bg-[#E1EAFF] text-[#0F172A] hover:bg-blue-200 active:bg-blue-300 self-center"
-                                type="submit">Сохранить</Button>
-                    </form>
-                </Form>
-
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button
-                            className="bg-[#E1EAFF] text-[#0F172A] hover:bg-blue-200 active:bg-blue-300 self-center">
-                            Изменить пароль
-                        </Button>
-                    </DialogTrigger>
-
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>
-                                Изменение пароля
-                            </DialogTitle>
-                        </DialogHeader>
-                        <Form {...passwordForm}>
-                            <form onSubmit={passwordForm.handleSubmit(() => null)} className="space-y-3 flex flex-col">
-                                <FormField control={passwordForm.control} render={({field}) => (
-                                    <FormItem>
-                                        <FormLabel>Пароль</FormLabel>
-                                        <FormControl>
-                                            <Input startIcon={Key} {...field}/>
-                                        </FormControl>
-                                        <FormMessage/>
-                                    </FormItem>
-                                )} name="password"/>
-                                <DialogFooter>
-                                    <Button type="submit">Сохранить</Button>
-                                </DialogFooter>
-                            </form>
-                        </Form>
-                    </DialogContent>
-                </Dialog>
+                <EditForm/>
+                <PasswordDialog/>
 
             </div>
         </main>

@@ -20,32 +20,7 @@ const Notifications = React.forwardRef<HTMLDivElement>((props, ref) => {
                 }
             })).data;
         },
-        refetchInterval: (values) => {
-            // const currentTime = new Date();
-            // if (values.state.data) {
-            //     for (const nf of values.state.data) {
-            //         if (notifications.get(nf.id)) {
-            //             continue;
-            //         }
-            //
-            //         console.log(currentTime > new Date(nf.start), currentTime > nf.start)
-            //         if (currentTime > new Date(nf.start) && nf.enabled) {
-            //             const context = async () => {
-            //                 const event = (await apiClient.get<Event>(`events/${nf.event_id}`)).data
-            //
-            //                 const parsed = getNotification(nf);
-            //
-            //                 setNotifications((prev) => prev.set(nf.id, true))
-            //                 toast.warning(`Событие ${event.event.title} скоро начнется!`)
-            //             }
-            //
-            //             void context()
-            //         }
-            //     }
-            // }
-
-            return 30000;
-        },
+        refetchInterval: 30000
     })
 
     useEffect(() => {
