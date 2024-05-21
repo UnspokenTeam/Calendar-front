@@ -1,7 +1,7 @@
 import axios, {AxiosError} from 'axios';
 import {getSession, signOut} from 'next-auth/react';
 
-const baseURL = "http://127.0.0.1:8000";
+const baseURL = process.env.API_URl;
 
 const ApiClient = () => {
     const defaultOptions = {
