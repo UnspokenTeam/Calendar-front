@@ -4,6 +4,7 @@ import apiClient from "@/lib/api-client";
 import {AuthResponse, Role} from "@/types/Users";
 import axios from "axios";
 import FormData from "form-data";
+import {DefaultJWT} from "next-auth/jwt";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -37,6 +38,21 @@ declare module "next-auth" {
     }
 }
 
+declare module 'next-auth/jwt' {
+    interface JWT extends DefaultJWT {
+        user: User
+    }
+
+    interface User {
+        id: string;
+        username: string;
+        email: string;
+        access_token: string;
+        refresh_token: string;
+        role: Role
+    }
+}
+
 /**
  * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
  *
@@ -44,21 +60,28 @@ declare module "next-auth" {
  */
 export const authOptions: NextAuthOptions = {
     callbacks: {
-        session: ({session, token, user}) => {
+        session: ({session, token}) => {
             return {
                 ...session,
                 user: {
                     ...session.user,
-                    // eslint-disable-next-line
-                    //@ts-expect-error
-                    access_token: token.user.access_token as string,
+                    access_token: token.user.access_token,
+                    username: token.user.username,
                     id: token.sub,
                 },
             }
         },
-        jwt({user, token}) {
+        jwt({user, token, session, trigger}) {
             if (user) {
                 token.user = user;
+            }
+
+            if (trigger == "update") {
+                token.email = (session as AuthResponse).user.email;
+                token.user.username = (session as AuthResponse).user.username;
+                token.user.role = (session as AuthResponse).user.role;
+                token.user.access_token = (session as AuthResponse).access_token;
+                token.user.refresh_token = (session as AuthResponse).refresh_token;
             }
 
             return token;
@@ -107,7 +130,7 @@ export const authOptions: NextAuthOptions = {
                     email: answer.data.user.email,
                     access_token: answer.data.access_token,
                     refresh_token: answer.data.refresh_token,
-                    role: answer.data.user.type
+                    role: answer.data.user.role
                 };
             },
         }),
@@ -136,7 +159,7 @@ export const authOptions: NextAuthOptions = {
                     email: answer.data.user.email,
                     access_token: answer.data.access_token,
                     refresh_token: answer.data.refresh_token,
-                    role: answer.data.user.type
+                    role: answer.data.user.role
                 };
             }
         })

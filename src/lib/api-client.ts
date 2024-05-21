@@ -1,5 +1,5 @@
 import axios, {AxiosError} from 'axios';
-import {getSession} from 'next-auth/react';
+import {getSession, signOut} from 'next-auth/react';
 
 const baseURL = "http://127.0.0.1:8000";
 
@@ -23,9 +23,13 @@ const ApiClient = () => {
         (response) => {
             return response;
         },
-        (error: AxiosError) => {
+        async (error: AxiosError) => {
             // console.log(`error`, error);
-            return error
+            console.log(error?.response)
+            if (error?.response?.status == 401) {
+                await signOut()
+            }
+            return Promise.reject(error)
         },
     );
 

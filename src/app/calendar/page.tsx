@@ -1,6 +1,6 @@
 "use client";
 
-import {CalendarIcon, Plus, User} from "lucide-react";
+import {Plus, User} from "lucide-react";
 import React from "react";
 import {Calendar} from "@/components/ui/calendar";
 import {Button} from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
     CommandGroup,
     CommandInput,
     CommandItem,
-    CommandList, CommandSeparator
+    CommandList
 } from "@/components/ui/command";
 import FullCalendar from '@fullcalendar/react';
 import timeGridWeek from '@fullcalendar/timegrid';
@@ -27,7 +27,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import {signOut, useSession} from "next-auth/react";
+import {signOut} from "next-auth/react";
 import AddEventDialog from "@/components/add-event-dialog";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {BorderMapper, ColorMapper, Colors, EventColorMapper, Events} from "@/types/Events";
@@ -36,9 +36,10 @@ import apiClient from "@/lib/api-client";
 import {EventChangeArg} from "@fullcalendar/core";
 import {cn} from "@/lib/utils";
 import Notifications from "@/components/notifications";
+import {useRouter} from "next/navigation";
 
 export default function CalendarPage() {
-    const session = useSession();
+    const router = useRouter();
     const [date, setDate] = React.useState<Date>(new Date())
     const today = startOfDay(new Date());
     const handleDate = (date?: Date) => {
@@ -151,22 +152,6 @@ export default function CalendarPage() {
         await mutateAsync({id: event.id, start: event.start!, end: event.end!})
     }
 
-    // const handleSelectSlot = ({start, end, id}) => {
-    //     const title = window.prompt('New Event Name');
-    //     if (title) {
-    //         setEvents(prevEvents => [
-    //             ...prevEvents,
-    //             {
-    //                 title,
-    //                 id,
-    //                 start,
-    //                 end,
-    //                 allDay: false
-    //             }
-    //         ]);
-    //     }
-    // };
-
     return (
         <main className="flex h-screen w-screen flex-col bg-[#001220]">
             <Notifications ref={notifications}/>
@@ -178,9 +163,9 @@ export default function CalendarPage() {
                     <DropdownMenuContent>
                         <DropdownMenuLabel>Мой аккаунт</DropdownMenuLabel>
                         <DropdownMenuSeparator/>
-                        <DropdownMenuItem>Профиль</DropdownMenuItem>
-                        <DropdownMenuItem>Настройки</DropdownMenuItem>
-                        <DropdownMenuItem>Подписки</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push("/profile")}>Профиль</DropdownMenuItem>
+                        <DropdownMenuItem disabled>Настройки</DropdownMenuItem>
+                        <DropdownMenuItem disabled>Подписки</DropdownMenuItem>
                         <DropdownMenuSeparator/>
                         <DropdownMenuItem onClick={async () => await signOut({
                             callbackUrl: "/login",
@@ -204,14 +189,14 @@ export default function CalendarPage() {
                                 setViewDialog(true);
                                 setPallet(false);
                             }} className={cn("mb-1.5", BorderMapper[item.color])}>
-                                    <div className="ml-1">
-                                        <div className="flex space-x-2 min-w-fit">
-                                            <span>{format(item.start, "dd MMM HH:mm")} - {format(item.end, "dd MMM HH:mm")}</span>
-                                        </div>
-                                        <div>
-                                            {item.title}
-                                        </div>
+                                <div className="ml-1">
+                                    <div className="flex space-x-2 min-w-fit">
+                                        <span>{format(item.start, "dd MMM HH:mm")} - {format(item.end, "dd MMM HH:mm")}</span>
                                     </div>
+                                    <div>
+                                        {item.title}
+                                    </div>
+                                </div>
                             </CommandItem>
                         ))}
                     </CommandGroup>
@@ -235,7 +220,7 @@ export default function CalendarPage() {
                     <div className="overflow-y-auto no-scrollbar w-full">
                         {(eventsToday && eventsToday.length > 0) && (
                             <>
-                            <hr className="h-[2px] bg-[#BCBCBC] w-full px-[15px] my-4"/>
+                                <hr className="h-[2px] bg-[#BCBCBC] w-full px-[15px] my-4"/>
                                 <div className="flex flex-col w-full max-w-full space-y-3">
                                     <div className="self-start">Сегодня {format(today, "dd/MM/yyyy")}</div>
                                     {eventsToday?.map((item) => (
