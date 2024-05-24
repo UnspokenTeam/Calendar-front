@@ -45,10 +45,14 @@ export default function CalendarPage() {
     const handleDate = (date?: Date) => {
         if (date) {
             setDate((state) => date);
-            ref.current?.getApi()?.gotoDate(date);
+            dayRef.current?.getApi()?.gotoDate(date);
+            weekRef.current?.getApi()?.gotoDate(date);
+            monthRef.current?.getApi()?.gotoDate(date);
         }
     }
-    const ref = React.useRef<FullCalendar>(null);
+    const dayRef = React.useRef<FullCalendar>(null);
+    const weekRef = React.useRef<FullCalendar>(null);
+    const monthRef = React.useRef<FullCalendar>(null);
     const [pallet, setPallet] = React.useState<boolean>(false);
     const [addDialog, setAddDialog] = React.useState<boolean>(false);
     const [viewDialog, setViewDialog] = React.useState<boolean>(false);
@@ -281,6 +285,7 @@ export default function CalendarPage() {
                         </TabsList>
                         <TabsContent value="day" className="flex-grow">
                             <FullCalendar
+                                ref={dayRef}
                                 plugins={[interactionPlugin, timeGridWeek]}
                                 initialView="timeGridDay"
                                 views={{
@@ -315,7 +320,7 @@ export default function CalendarPage() {
                         </TabsContent>
                         <TabsContent value="week" className="flex-grow">
                             <FullCalendar
-                                ref={ref}
+                                ref={weekRef}
                                 plugins={[timeGridWeek, interactionPlugin, dayGridMonth]}
                                 initialView="timeGridWeek"
                                 views={{
@@ -351,6 +356,7 @@ export default function CalendarPage() {
                         </TabsContent>
                         <TabsContent value="month" className="flex-grow">
                             <FullCalendar
+                                ref={monthRef}
                                 plugins={[interactionPlugin, dayGridMonth]}
                                 initialView="dayGridMonth"
                                 initialDate={date}
