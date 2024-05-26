@@ -5,7 +5,7 @@ import React from "react";
 import {Calendar} from "@/components/ui/calendar";
 import {Button} from "@/components/ui/button";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
-import {addDays, endOfDay, endOfMonth, format, startOfDay, startOfMonth, subDays} from 'date-fns';
+import {addDays, addWeeks, endOfDay, endOfMonth, format, startOfDay, startOfMonth, subDays, subWeeks} from 'date-fns';
 import {
     CommandDialog,
     CommandEmpty,
@@ -45,10 +45,14 @@ export default function CalendarPage() {
     const handleDate = (date?: Date) => {
         if (date) {
             setDate((state) => date);
-            ref.current?.getApi()?.gotoDate(date);
+            dayRef.current?.getApi()?.gotoDate(date);
+            weekRef.current?.getApi()?.gotoDate(date);
+            monthRef.current?.getApi()?.gotoDate(date);
         }
     }
-    const ref = React.useRef<FullCalendar>(null);
+    const dayRef = React.useRef<FullCalendar>(null);
+    const weekRef = React.useRef<FullCalendar>(null);
+    const monthRef = React.useRef<FullCalendar>(null);
     const [pallet, setPallet] = React.useState<boolean>(false);
     const [addDialog, setAddDialog] = React.useState<boolean>(false);
     const [viewDialog, setViewDialog] = React.useState<boolean>(false);
@@ -77,8 +81,8 @@ export default function CalendarPage() {
                 params: {
                     page: 1,
                     items_per_page: -1,
-                    start: startOfDay(subDays(startOfMonth(date as Date), 7)),
-                    end: endOfDay(subDays(endOfMonth(date as Date), 7)),
+                    start: startOfDay(subWeeks(startOfMonth(date as Date), 1)),
+                    end: endOfDay(addWeeks(endOfMonth(date as Date), 1)),
                 }
             })).data.map((item) => {
                 item.id = `${item.id}&${Math.floor(Math.random() * 100)}`
@@ -281,6 +285,7 @@ export default function CalendarPage() {
                         </TabsList>
                         <TabsContent value="day" className="flex-grow">
                             <FullCalendar
+                                ref={dayRef}
                                 plugins={[interactionPlugin, timeGridWeek]}
                                 initialView="timeGridDay"
                                 views={{
@@ -315,7 +320,7 @@ export default function CalendarPage() {
                         </TabsContent>
                         <TabsContent value="week" className="flex-grow">
                             <FullCalendar
-                                ref={ref}
+                                ref={weekRef}
                                 plugins={[timeGridWeek, interactionPlugin, dayGridMonth]}
                                 initialView="timeGridWeek"
                                 views={{
@@ -351,6 +356,7 @@ export default function CalendarPage() {
                         </TabsContent>
                         <TabsContent value="month" className="flex-grow">
                             <FullCalendar
+                                ref={monthRef}
                                 plugins={[interactionPlugin, dayGridMonth]}
                                 initialView="dayGridMonth"
                                 initialDate={date}
